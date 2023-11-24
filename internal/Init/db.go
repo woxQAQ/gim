@@ -12,7 +12,12 @@ import (
 )
 
 func Initdb() {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?chatset=utf8mb4&parseTime=True&loc=Local", User, Password, Host, Port, dbName)
+	User := "root"
+	Password := "woaisj870621"
+	Host := "127.0.0.1"
+	Port := "3306"
+	dbName := "gIM"
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", User, Password, Host, Port, dbName)
 
 	Logger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),

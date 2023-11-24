@@ -1,8 +1,14 @@
 package router
 
-import "github.com/gin-gonic/gin"
-import "gIM/internal/server/auth"
+import (
+	"gIM/internal/server/auth"
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterGin(router *gin.Engine) {
-	router.POST("/login", auth.Login)
+	Auth := router.Group("/auth")
+	{
+		Auth.POST("/login", auth.Login)
+		Auth.POST("/signup", auth.Signup)
+	}
 }
