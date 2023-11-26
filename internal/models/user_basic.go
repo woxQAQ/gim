@@ -17,9 +17,9 @@ type UserBasic struct {
 	ClientIp      string `valid:"ipv4"`
 	ClientPort    string
 	Salt          string
-	LoginTime     *time.Time `gorm:"column:login_time"`
-	HeartBeatTime *time.Time `gorm:"column:heart_beat_time"`
-	LogOutTime    *time.Time `gorm:"column:logout_time"`
+	LoginTime     time.Time `gorm:"column:login_time"`
+	HeartBeatTime time.Time `gorm:"column:heart_beat_time"`
+	LogOutTime    time.Time `gorm:"column:logout_time"`
 	IsLogOut      bool
 	DeviceInfo    string
 }

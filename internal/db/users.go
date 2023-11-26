@@ -16,7 +16,7 @@ import (
 // QueryByNameAndPwd 根据用户名和密码检索用户
 func QueryByNameAndPwd(name string, password string) (*models.UserBasic, error) {
 	var User models.UserBasic
-	if tx := global.DB.Where(models.UserBasic{Name: name, Password: password}).First(&User); tx.Error != nil {
+	if tx := global.DB.Where(&models.UserBasic{Name: name, Password: password}).First(&User); tx.Error != nil {
 		return nil, tx.Error
 	}
 	return &User, nil
@@ -32,19 +32,21 @@ func CreateUser(user models.UserBasic) (*models.UserBasic, error) {
 	return &user, nil
 }
 
-func DeleteUser(user models.UserBasic) (*models.UserBasic, error) {
+func DeleteUser(user models.UserBasic) error {
 	tx := global.DB.Delete(&user)
 	if tx.Error != nil {
 		zap.S().Info("删除用户失败")
-		return nil, tx.Error
+		return tx.Error
 	}
-	return &user, nil
+	return nil
 }
 
 func UpdateUser(user models.UserBasic) (*models.UserBasic, error) {
 	tx := global.DB.Model(&user).Updates(models.UserBasic{
 		Name:     user.Name,
 		Password: user.Password,
+		Email:    user.Email,
+		Phone:    user.Phone,
 		Gender:   user.Gender,
 	})
 	if tx.Error != nil {
@@ -55,8 +57,16 @@ func UpdateUser(user models.UserBasic) (*models.UserBasic, error) {
 
 func QueryByUserName(name string) (*models.UserBasic, error) {
 	var User models.UserBasic
-	if tx := global.DB.Where(models.UserBasic{Name: name}).First(&User); tx.Error != nil {
+	if tx := global.DB.Where(map[string]interface{}{"Name": name}).First(&User); tx.Error != nil {
 		return nil, tx.Error
 	}
 	return &User, nil
+}
+
+func UserExist(name string) bool {
+	var User models.UserBasic
+	if tx := global.DB.Where(&models.UserBasic{Name: name}).First(&User); tx.Error != nil {
+		return false
+	}
+	return true
 }

@@ -1,14 +1,17 @@
 package router
 
 import (
-	"gIM/internal/server/auth"
+	"gIM/internal/middleware"
+	"gIM/internal/server/users"
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterGin(router *gin.Engine) {
-	Auth := router.Group("/auth")
+	User := router.Group("/user")
 	{
-		Auth.POST("/login", auth.Login)
-		Auth.POST("/signup", auth.Signup)
+		User.POST("/login", middleware.JWY(), users.Login)
+		User.POST("/signup", middleware.JWY(), users.Signup)
+		User.GET("/info", middleware.JWY(), users.InfoUser)
+		User.POST("/update", middleware.JWY(), users.UpdateUser)
 	}
 }
