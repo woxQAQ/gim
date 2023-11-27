@@ -2,6 +2,7 @@ package users
 
 import (
 	"gIM/internal/db"
+	"gIM/internal/middleware/jwt"
 	"gIM/internal/models"
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,13 @@ import (
 	"time"
 )
 
+// Login godoc
+// @Summary 登陆
+// @Description 使用用户名和密码进行登陆，并返回授权token
+// @Accept json
+// @Produce json
+// @Success 200
+// @Router /user/login [post]
 func Login(ctx *gin.Context) {
 	userName := ctx.PostForm("name")
 	userPwd := ctx.PostForm("password")
@@ -47,11 +55,21 @@ func Login(ctx *gin.Context) {
 	data.LoginTime = time.Now()
 	data.IsLogOut = false
 	// todo 此处的用户名密码都是通过明文传输的，不安全，如何进行密文传输？
+
+	//zap.S().Info("鉴权")
+
+	token, err := jwt.GenerateToken(data.Name, data.Password, "woxQAQ")
+	if err != nil {
+		zap.S().Info("生成token失败", err)
+		return
+	}
 	// 鉴权成功
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "登陆成功",
 		"userID":  data.ID,
+		"token":   token,
 	})
 
 	_, err = db.UpdateUser(*data)
@@ -77,6 +95,15 @@ func Signup(ctx *gin.Context) {
 		return
 	}
 
+	if repassword != user.Password {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "注册失败：两次输入的密码不一致",
+			"data":    user.Password,
+		})
+		return
+	}
+
 	isExist := db.UserExist(user.Name)
 	if isExist {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -87,15 +114,10 @@ func Signup(ctx *gin.Context) {
 		return
 	}
 
-	if repassword != user.Password {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    -1,
-			"message": "注册失败：两次输入的密码不一致",
-			"data":    user.Password,
-		})
-		return
-	}
-
+	t := time.Now()
+	user.LogOutTime = t
+	user.LoginTime = t
+	user.HeartBeatTime = t
 	// todo 加密
 
 	_, err := db.CreateUser(user)
@@ -141,9 +163,8 @@ func DelUser(ctx *gin.Context) {
 }
 
 func InfoUser(ctx *gin.Context) {
-
 	// 获取用户名
-	name := ctx.PostForm("name")
+	name := ctx.Param("name")
 
 	// todo 鉴权
 
@@ -156,7 +177,17 @@ func InfoUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, users)
+	ctx.JSON(http.StatusOK, models.UserBasic{
+		Name:       users.Name,
+		Gender:     users.Gender,
+		Phone:      users.Phone,
+		Email:      users.Email,
+		Avatar:     users.Avatar,
+		LoginTime:  users.LoginTime,
+		LogOutTime: users.LogOutTime,
+		IsLogOut:   users.IsLogOut,
+		DeviceInfo: users.DeviceInfo,
+	})
 }
 
 // UpdateUser 用来更新重要的，用来标识用户的内容
@@ -171,6 +202,7 @@ func UpdateUser(ctx *gin.Context) {
 		return
 	}
 	user := models.UserBasic{}
+	user.ID = uint(id)
 
 	Name := ctx.PostForm("name")
 	Password := ctx.PostForm("password")

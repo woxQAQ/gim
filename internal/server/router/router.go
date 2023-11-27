@@ -1,17 +1,27 @@
 package router
 
 import (
-	"gIM/internal/middleware"
+	_ "gIM/docs"
+	"gIM/internal/middleware/jwt"
 	"gIM/internal/server/users"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func RegisterGin(router *gin.Engine) {
-	User := router.Group("/user")
+	// 获取 swagger 文档
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	v1 := router.Group("/v1")
 	{
-		User.POST("/login", middleware.JWY(), users.Login)
-		User.POST("/signup", middleware.JWY(), users.Signup)
-		User.GET("/info", middleware.JWY(), users.InfoUser)
-		User.POST("/update", middleware.JWY(), users.UpdateUser)
+		// user api
+		User := v1.Group("/user")
+		{
+			User.POST("/login", users.Login)
+			User.POST("/signup", users.Signup)
+			User.GET("/:name", users.InfoUser)
+			User.POST("/update", jwt.JWY(), users.UpdateUser)
+		}
 	}
+
 }
