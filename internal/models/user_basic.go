@@ -20,6 +20,7 @@ type UserBasic struct {
 	LoginTime     time.Time `gorm:"column:login_time"`
 	HeartBeatTime time.Time `gorm:"column:heart_beat_time"`
 	LogOutTime    time.Time `gorm:"column:logout_time"`
+	BrithDay      string
 	IsLogOut      bool
 	DeviceInfo    string
 }

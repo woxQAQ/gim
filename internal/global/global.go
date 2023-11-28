@@ -25,3 +25,5 @@ var (
 	DBPwd  string
 	DBHost string
 )
+
+var DateTemp = "2006-01-01"

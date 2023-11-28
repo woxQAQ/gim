@@ -6,6 +6,7 @@ package users
 
 import (
 	"gIM/internal/db"
+	"gIM/internal/global"
 	"gIM/internal/middleware/jwt"
 	"gIM/internal/models"
 	"github.com/asaskevich/govalidator"
@@ -96,6 +97,7 @@ func Signup(ctx *gin.Context) {
 	user.Name = ctx.PostForm("name")
 	Password := ctx.PostForm("password")
 	repassword := ctx.PostForm("Identify")
+	birthday := ctx.PostForm("birthday")
 
 	if user.Name == "" || Password == "" {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -114,6 +116,15 @@ func Signup(ctx *gin.Context) {
 		return
 	}
 
+	_, err := time.Parse(global.DateTemp, birthday)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "注册失败：日期格式错误",
+			"data":    birthday,
+		})
+		return
+	}
 	isExist := db.UserExist(user.Name)
 	if isExist {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -123,6 +134,7 @@ func Signup(ctx *gin.Context) {
 		})
 		return
 	}
+	user.BrithDay = birthday
 
 	t := time.Now()
 	user.LogOutTime = t
@@ -133,7 +145,7 @@ func Signup(ctx *gin.Context) {
 	user.Password = encryptPwd(Password, salt)
 	user.Salt = salt
 
-	_, err := db.CreateUser(user)
+	_, err = db.CreateUser(user)
 	if err != nil {
 		log.Fatalln(err)
 	}

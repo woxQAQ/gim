@@ -1,0 +1,24 @@
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8964
+info:
+  contact: {}
+  description: gIM服务器
+  license:
+    name: MIT
+  title: API文档
+  version: "1.0"
+paths:
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用用户名和密码进行登陆，并返回授权token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: 登陆
+swagger: "2.0"
