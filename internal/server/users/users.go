@@ -1,5 +1,9 @@
 package users
 
+// users godoc
+// users 实现了用户相关的api
+// 包括登陆，注册，获取用户信息（有限的），注销用户
+
 import (
 	"gIM/internal/db"
 	"gIM/internal/middleware/jwt"
@@ -19,38 +23,38 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200
-// @Router /user/login [post]
+// @Router /v1/user/login [post]
 func Login(ctx *gin.Context) {
 	userName := ctx.PostForm("name")
 	userPwd := ctx.PostForm("password")
 
 	// 确认用户存在
-	_, err := db.QueryByUserName(userName)
+	data, err := db.QueryByUserName(userName)
 	if err != nil {
-		ctx.JSON(http.StatusForbidden, gin.H{
+		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"code":    -1,
-			"message": "登录失败：用户名错误",
+			"message": "登录失败",
+			"error":   err,
 		})
 		return
 	}
 
-	// 检查密码
-	data, err := db.QueryByNameAndPwd(userName, userPwd)
-	if err != nil {
+	if data.Name == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    -1,
+			"message": "用户不存在",
+		})
+		return
+	}
+
+	ok := checkPwd(userPwd, data.Salt, data.Password)
+	if !ok {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"code":    -1,
 			"message": "登陆失败：密码错误",
 		})
 		return
 	}
-
-	//if !data.IsLogOut {
-	//	ctx.JSON(http.StatusForbidden, gin.H{
-	//		"code":    -1,
-	//		"message": "登陆失败：用户已登陆",
-	//	})
-	//	return
-	//}
 
 	data.LoginTime = time.Now()
 	data.IsLogOut = false
@@ -68,7 +72,6 @@ func Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "登陆成功",
-		"userID":  data.ID,
 		"token":   token,
 	})
 
@@ -81,13 +84,20 @@ func Login(ctx *gin.Context) {
 
 }
 
+// Signup godoc
+// @Summary 注册
+// @Description 使用用户名和密码进行注册
+// @Accept json
+// @Produce json
+// @Success 200
+// @Router /vi/user/signup [post]
 func Signup(ctx *gin.Context) {
 	user := models.UserBasic{}
 	user.Name = ctx.PostForm("name")
-	user.Password = ctx.PostForm("password")
+	Password := ctx.PostForm("password")
 	repassword := ctx.PostForm("Identify")
 
-	if user.Name == "" || user.Password == "" {
+	if user.Name == "" || Password == "" {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
 			"message": "注册失败：用户名或密码为空",
@@ -95,11 +105,11 @@ func Signup(ctx *gin.Context) {
 		return
 	}
 
-	if repassword != user.Password {
+	if repassword != Password {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
 			"message": "注册失败：两次输入的密码不一致",
-			"data":    user.Password,
+			"data":    Password,
 		})
 		return
 	}
@@ -118,7 +128,10 @@ func Signup(ctx *gin.Context) {
 	user.LogOutTime = t
 	user.LoginTime = t
 	user.HeartBeatTime = t
-	// todo 加密
+
+	salt := getSalt()
+	user.Password = encryptPwd(Password, salt)
+	user.Salt = salt
 
 	_, err := db.CreateUser(user)
 	if err != nil {
@@ -162,11 +175,17 @@ func DelUser(ctx *gin.Context) {
 	})
 }
 
+// InfoUser godoc
+// @Summary 获取某个用户的有限信息
+// @Description 使用用户名作为参数
+// @Param name
+// @Accept json
+// @Produce json
+// @Success 200
+// @Router /vi/user/signup [post]
 func InfoUser(ctx *gin.Context) {
 	// 获取用户名
 	name := ctx.Param("name")
-
-	// todo 鉴权
 
 	users, err := db.QueryByUserName(name)
 	if err != nil {
@@ -193,7 +212,7 @@ func InfoUser(ctx *gin.Context) {
 // UpdateUser 用来更新重要的，用来标识用户的内容
 func UpdateUser(ctx *gin.Context) {
 
-	id, err := strconv.Atoi(ctx.PostForm("id"))
+	id, err := strconv.Atoi(ctx.Query("id"))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"code":    -1,

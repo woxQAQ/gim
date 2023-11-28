@@ -12,5 +12,6 @@ func Start() {
 
 	router.RegisterGin(r)
 
+	gin.SetMode(global.RunMode)
 	r.Run(fmt.Sprintf(":%d", global.HttpPort))
 }
