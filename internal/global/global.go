@@ -27,3 +27,5 @@ var (
 )
 
 var DateTemp = "2006-01-01"
+
+type UidT uint
