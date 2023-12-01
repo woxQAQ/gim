@@ -41,3 +41,7 @@ type FriendBasic struct {
 	// 在QQ中我们有朋友分组，而微信中有朋友圈tag，都属于分组
 	Group string
 }
+
+func (f *FriendBasic) FriTableName() string {
+	return "friends"
+}

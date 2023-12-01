@@ -3,7 +3,7 @@ package main
 import (
 	"gIM/internal/Init"
 	"gIM/internal/config"
-	"gIM/internal/server/bootstrap"
+	"gIM/internal/server"
 )
 
 // @title API文档
@@ -18,5 +18,5 @@ func main() {
 	config.InitConfig()
 	Init.Initdb()
 	Init.InitLogger()
-	bootstrap.Start()
+	server.Start()
 }
