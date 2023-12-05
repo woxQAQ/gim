@@ -9,13 +9,13 @@ import (
 	"gIM/internal/global"
 	"gIM/internal/middleware/jwt"
 	"gIM/internal/models"
-	"github.com/asaskevich/govalidator"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	vad "github.com/asaskevich/govalidator"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // Login godoc
@@ -26,11 +26,13 @@ import (
 // @Success 200
 // @Router /v1/user/login [post]
 func Login(ctx *gin.Context) {
-	userName := ctx.PostForm("name")
+	Id, err := strconv.Atoi(ctx.PostForm("id"))
+	userId := uint(Id)
+	// userName := ctx.PostForm("name")
 	userPwd := ctx.PostForm("password")
 
 	// 确认用户存在
-	data, err := db.QueryByUserName(userName)
+	data, err := db.QueryById(userId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"code":    -1,
@@ -58,7 +60,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	data.LoginTime = time.Now()
-	data.IsLogOut = false
+	data.Online = true
 	// todo 此处的用户名密码都是通过明文传输的，不安全，如何进行密文传输？
 
 	//zap.S().Info("鉴权")
@@ -76,7 +78,7 @@ func Login(ctx *gin.Context) {
 		"token":   token,
 	})
 
-	_, err = db.UpdateUser(*data)
+	err = db.UpdateUser(data)
 	if err != nil {
 		zap.S().Info("更新数据失败")
 		// todo 请求重传
@@ -93,13 +95,12 @@ func Login(ctx *gin.Context) {
 // @Success 200
 // @Router /vi/user/signup [post]
 func Signup(ctx *gin.Context) {
-	user := models.UserBasic{}
-	user.Name = ctx.PostForm("name")
+	Name := ctx.PostForm("name")
 	Password := ctx.PostForm("password")
-	repassword := ctx.PostForm("Identify")
+	repassword := ctx.PostForm("repassword")
 	birthday := ctx.PostForm("birthday")
 
-	if user.Name == "" || Password == "" {
+	if vad.IsNotNull(Name) || vad.IsNotNull(Password) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
 			"message": "注册失败：用户名或密码为空",
@@ -115,9 +116,8 @@ func Signup(ctx *gin.Context) {
 		})
 		return
 	}
-
-	_, err := time.Parse(global.DateTemp, birthday)
-	if err != nil {
+	// todo 邮箱认证or 手机号认证
+	if !vad.IsTime(birthday, global.DateTemp) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
 			"message": "注册失败：日期格式错误",
@@ -125,18 +125,20 @@ func Signup(ctx *gin.Context) {
 		})
 		return
 	}
-	isExist := db.UserExist(user.Name)
+	isExist := db.UserExist(Name)
 	if isExist {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
 			"message": "注册失败：用户已存在，请进行登陆",
-			"data":    user.Name,
+			"data":    Name,
 		})
 		return
 	}
-	user.BrithDay = birthday
 
 	t := time.Now()
+	user := models.UserBasic{
+		Name: Name,
+	}
 	user.LogOutTime = t
 	user.LoginTime = t
 	user.HeartBeatTime = t
@@ -145,9 +147,13 @@ func Signup(ctx *gin.Context) {
 	user.Password = encryptPwd(Password, salt)
 	user.Salt = salt
 
-	_, err = db.CreateUser(user)
+	err := db.CreateUser(user)
 	if err != nil {
-		log.Fatalln(err)
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    0,
+			"message": "注册成功，请进行登陆",
+			"error":   err,
+		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -160,18 +166,15 @@ func Signup(ctx *gin.Context) {
 func DelUser(ctx *gin.Context) {
 	user := models.UserBasic{}
 
-	id, err := strconv.Atoi(ctx.PostForm("id"))
-	if err != nil {
-		zap.S().Info("获取ID失败", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
+	if err := ctx.Bind(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
-			"message": "删除用户失败",
+			"message": "获取ID失败",
 		})
 		return
 	}
 
-	user.ID = uint(id)
-	err = db.DeleteUser(user)
+	err := db.DeleteUser(user)
 	if err != nil {
 		zap.S().Info("删除用户失败", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -201,23 +204,26 @@ func InfoUser(ctx *gin.Context) {
 
 	users, err := db.QueryByUserName(name)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+		ctx.JSON(http.StatusNotFound, gin.H{
 			"code":    -1,
 			"message": "不存在此用户",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, models.UserBasic{
-		Name:       users.Name,
-		Gender:     users.Gender,
-		Phone:      users.Phone,
-		Email:      users.Email,
-		Avatar:     users.Avatar,
-		LoginTime:  users.LoginTime,
-		LogOutTime: users.LogOutTime,
-		IsLogOut:   users.IsLogOut,
-		DeviceInfo: users.DeviceInfo,
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "查询成功",
+		"data": models.UserBasic{
+			Name:       users.Name,
+			Gender:     users.Gender,
+			Phone:      users.Phone,
+			Email:      users.Email,
+			Avatar:     users.Avatar,
+			LoginTime:  users.LoginTime,
+			LogOutTime: users.LogOutTime,
+			Online:     users.Online,
+		},
 	})
 }
 
@@ -257,8 +263,7 @@ func UpdateUser(ctx *gin.Context) {
 		user.Gender = Gender
 	}
 
-	// TOdo 鉴权
-	_, err = govalidator.ValidateStruct(user)
+	_, err = vad.ValidateStruct(user)
 	if err != nil {
 		zap.S().Info("参数不合法", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -267,7 +272,7 @@ func UpdateUser(ctx *gin.Context) {
 		})
 		return
 	}
-	_, err = db.UpdateUser(user)
+	err = db.UpdateUser(user)
 	if err != nil {
 		zap.S().Info("更新用户失败", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{

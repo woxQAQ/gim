@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"gIM/internal/global"
 	"gIM/internal/models"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"time"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func Initdb() {
@@ -31,7 +32,7 @@ func Initdb() {
 	if err != nil {
 		panic(err)
 	}
-	err = global.DB.AutoMigrate(&models.UserBasic{})
+	err = global.DB.AutoMigrate(&models.UserBasic{}, &models.Relation{})
 	if err != nil {
 		panic(err)
 	}

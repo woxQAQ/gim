@@ -1,8 +1,9 @@
 package Init
 
 import (
-	"go.uber.org/zap"
 	"log"
+
+	"go.uber.org/zap"
 )
 
 func InitLogger() {
