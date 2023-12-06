@@ -4,27 +4,25 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
-	"io"
 )
 
 func md5Encoder(password, salt string) string {
-	MD5 := md5.New()
-	io.WriteString(MD5, password+"$"+salt)
-	return hex.EncodeToString(MD5.Sum(nil))
+	data := []byte(password + "$" + salt)
+	hash := md5.Sum(data)
+	return hex.EncodeToString(hash[:])
 }
 
 func getSalt() string {
 	b := make([]byte, 16)
-	_, err := io.ReadFull(rand.Reader, b)
+	_, err := rand.Read(b)
 	if err != nil {
 		return ""
 	}
-	return fmt.Sprintf("%x", b)
+	return hex.EncodeToString(b)
 }
 
 func encryptPwd(password, salt string) string {
-	return fmt.Sprintf(md5Encoder(password, salt))
+	return md5Encoder(password, salt)
 }
 
 func checkPwd(password, salt, savedPwd string) bool {
