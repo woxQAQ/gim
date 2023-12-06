@@ -1,11 +1,9 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/woxQAQ/gim/internal/global"
-	"gorm.io/gorm"
 	"github.com/woxQAQ/gim/internal/models"
 )
 
@@ -76,9 +74,6 @@ func UserExist(userId uint) (bool,error){
 func QueryById(userId uint) (models.UserBasic, error) {
 	User := models.UserBasic{}
 	if tx := global.DB.Where("id = ?", userId).First(&User); tx.Error != nil {
-		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
-			return User, errors.New("用户不存在")
-		}
 		return User, tx.Error
 	}
 	return User, nil

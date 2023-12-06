@@ -5,6 +5,7 @@ package users
 // 包括登陆，注册，获取用户信息（有限的），注销用户
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/woxQAQ/gim/internal/middleware/jwt"
 	"github.com/woxQAQ/gim/internal/models"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Login godoc
@@ -27,6 +29,14 @@ import (
 // @Router /v1/user/login [post]
 func Login(ctx *gin.Context) {
 	Id, err := strconv.Atoi(ctx.PostForm("id"))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"code" : -1,
+			"message": "登录失败",
+			"error": err,
+		})
+		return
+	}
 	userId := uint(Id)
 	// userName := ctx.PostForm("name")
 	userPwd := ctx.PostForm("password")
@@ -34,25 +44,25 @@ func Login(ctx *gin.Context) {
 	// 确认用户存在
 	data, err := db.QueryById(userId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"code":    -1,
-			"message": "登录失败",
-			"error":   err,
-		})
-		return
-	}
+		zap.S().Error("查询用户失败:", err)
 
-	if data.Name == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
+		statusCode := http.StatusInternalServerError
+		msg := "其他错误"
+		if err == gorm.ErrRecordNotFound {
+			msg = "用户不存在"
+			statusCode = http.StatusBadRequest
+		}
+		ctx.AbortWithStatusJSON(statusCode, gin.H{
 			"code":    -1,
-			"message": "用户不存在",
+			"message": msg,
+			"error":   err.Error(),
 		})
 		return
 	}
 
 	ok := checkPwd(userPwd, data.Salt, data.Password)
 	if !ok {
-		ctx.JSON(http.StatusForbidden, gin.H{
+		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"code":    -1,
 			"message": "登陆失败：密码错误",
 		})
@@ -63,28 +73,37 @@ func Login(ctx *gin.Context) {
 	data.Online = true
 	// todo 此处的用户名密码都是通过明文传输的，不安全，如何进行密文传输？
 
-	//zap.S().Info("鉴权")
-
 	token, err := jwt.GenerateToken(data.Name, data.Password, "woxQAQ")
 	if err != nil {
-		zap.S().Info("生成token失败", err)
+		zap.S().With(err).Info("生成token失败")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"code":    -1,
+			"message": "生成token失败",
+		})
 		return
 	}
 	// 鉴权成功
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"code":    0,
-		"message": "登陆成功",
-		"token":   token,
-	})
+	for i := 0; i < 3; i++  {
+		err = db.UpdateUser(data)
+		if err != nil {
+			zap.S().Info("更新数据失败")
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"code":    -1,
+				"message": fmt.Sprintf("更新数据失败,正在重传, 重传次数: %x", i),
+			})
+			continue
+		}
 
-	err = db.UpdateUser(data)
-	if err != nil {
-		zap.S().Info("更新数据失败")
-		// todo 请求重传
+		// 返回 token
+		zap.S().Info("更新数据成功")
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    0,
+			"message": "登陆成功",
+			"token":   token,
+		})
 		return
 	}
-
 }
 
 // Signup godoc
@@ -219,7 +238,15 @@ func InfoUser(ctx *gin.Context) {
 	})
 }
 
-// UpdateUser 用来更新重要的，用来标识用户的内容
+// UpdateUser godoc
+// @Summary 更新用户信息
+// @Description 更新用户信息，包括用户名，密码，电话，邮箱，性别等
+// @Accept json
+// @Produce json
+// @Success 200
+// @Router /vi/user/update [post]
+// @Param id query int true "用户id"
+// @Param name formData string true "用户名"
 func UpdateUser(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Query("id"))
