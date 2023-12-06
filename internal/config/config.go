@@ -1,9 +1,10 @@
 package config
 
 import (
-	"gIM/internal/global"
-	"gopkg.in/ini.v1"
 	"log"
+
+	"github.com/woxQAQ/gim/internal/global"
+	"gopkg.in/ini.v1"
 )
 
 func InitConfig() {

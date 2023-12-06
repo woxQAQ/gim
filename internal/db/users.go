@@ -3,10 +3,10 @@ package db
 import (
 	"errors"
 	"fmt"
-	"gIM/internal/global"
-	"gIM/internal/models"
 
+	"github.com/woxQAQ/gim/internal/global"
 	"gorm.io/gorm"
+	"github.com/woxQAQ/gim/internal/models"
 )
 
 // TODO 需求分析：用户模块的基本crud操作
@@ -64,12 +64,13 @@ func QueryByUserName(name string) (*models.UserBasic, error) {
 	return &User, nil
 }
 
-func UserExist(name string) bool {
+func UserExist(userId uint) (bool,error){
 	var User models.UserBasic
-	if tx := global.DB.Where(&models.UserBasic{Name: name}).First(&User); tx.Error != nil {
-		return false
+	if err := global.DB.Where("ID = ?", userId).First(&User).Error; err != nil {
+		return false, err
 	}
-	return true
+	
+	return true, nil
 }
 
 func QueryById(userId uint) (models.UserBasic, error) {

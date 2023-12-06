@@ -1,12 +1,12 @@
 package router
 
 import (
-	_ "gIM/docs"
-	"gIM/internal/middleware/jwt"
-	"gIM/internal/server/users"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/woxQAQ/gim/docs"
+	"github.com/woxQAQ/gim/internal/middleware/jwt"
+	"github.com/woxQAQ/gim/internal/server/users"
 )
 
 func RegisterGin(router *gin.Engine) {

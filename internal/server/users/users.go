@@ -5,16 +5,16 @@ package users
 // 包括登陆，注册，获取用户信息（有限的），注销用户
 
 import (
-	"gIM/internal/db"
-	"gIM/internal/global"
-	"gIM/internal/middleware/jwt"
-	"gIM/internal/models"
 	"net/http"
 	"strconv"
 	"time"
 
 	vad "github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
+	"github.com/woxQAQ/gim/internal/db"
+	"github.com/woxQAQ/gim/internal/global"
+	"github.com/woxQAQ/gim/internal/middleware/jwt"
+	"github.com/woxQAQ/gim/internal/models"
 	"go.uber.org/zap"
 )
 
@@ -125,15 +125,7 @@ func Signup(ctx *gin.Context) {
 		})
 		return
 	}
-	isExist := db.UserExist(Name)
-	if isExist {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    -1,
-			"message": "注册失败：用户已存在，请进行登陆",
-			"data":    Name,
-		})
-		return
-	}
+	// 用户名允许重复
 
 	t := time.Now()
 	user := models.UserBasic{

@@ -1,12 +1,13 @@
 package jwt
 
 import (
-	"gIM/internal/global"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/woxQAQ/gim/internal/global"
+	"go.uber.org/zap"
 )
 
 type Jwt struct {

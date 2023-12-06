@@ -1,10 +1,11 @@
 package models
 
 import (
-	"gIM/internal/models"
+	"testing"
+
+	"github.com/woxQAQ/gim/internal/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"testing"
 )
 
 func Test_models(t *testing.T) {

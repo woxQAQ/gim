@@ -3,10 +3,11 @@ package db
 import (
 	"errors"
 	"fmt"
-	"gIM/internal/global"
-	"gIM/internal/models"
 
 	vad "github.com/asaskevich/govalidator"
+	"github.com/woxQAQ/gim/internal/global"
+	"github.com/woxQAQ/gim/internal/models"
+	"gorm.io/gorm"
 )
 
 // 获取好友列表
@@ -60,27 +61,28 @@ func FriendListByUser(user models.UserBasic) ([]models.UserBasic, error) {
 
 func CreateFriend(user models.UserBasic, friendId uint) (err error) {
 	// 验证结构完整性
-	if ok, err := vad.ValidateStruct(user); !ok {
-		return fmt.Errorf("用户结构不完整")
-	} else if err != nil {
-		return err
+	if err = userStructValid(user); err != nil {
+		return
 	}
-
+	// 验证 user 存在,防止错误操作
+	if ok, err := UserExist(user.ID); !ok || err != nil{
+		if !ok {
+			return errors.New("创建好友失败:用户不存在")
+		}
+		return fmt.Errorf("创建用户失败:%w" ,err)
+	}
+	// 验证两个ID不同，防止误操作
 	if user.ID == friendId {
 		return errors.New("不能添加自己为好友")
 	}
-	if tx := global.DB.Where("user_id = ? and friend_id = ?", user.ID, friendId).
-		First(&models.Relation{}); tx.RowsAffected != 0 {
-		return errors.New("好友已添加过")
+	// 防止重复加好友
+	for _, id := range user.Friends {
+		if id == friendId {
+			return errors.New("已经是好友")
+		}
 	}
 	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil || err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
+	defer closeTransactions(tx, err)
 	relations := []models.Relation{
 		{
 			UserId:   user.ID,
@@ -94,7 +96,7 @@ func CreateFriend(user models.UserBasic, friendId uint) (err error) {
 		},
 	}
 	user.Friends = append(user.Friends, friendId)
-	UpdateUser(user)
+
 	if err = tx.Updates(&user).Error; err != nil {
 		return fmt.Errorf("添加好友失败: %w", err)
 	}
@@ -102,16 +104,27 @@ func CreateFriend(user models.UserBasic, friendId uint) (err error) {
 		return fmt.Errorf("添加好友失败: %w", err)
 	}
 
-	tx.Commit()
 	return nil
 }
 
-func DeleteFriend(user models.UserBasic, friendId uint) error {
+func DeleteFriend(user models.UserBasic, friendId uint) (err error) {
 	// 验证结构完整性
-	if ok, err := vad.ValidateStruct(user); !ok {
-		return fmt.Errorf("用户结构不完整")
-	} else if err != nil {
-		return err
+
+	if err = userStructValid(user); err != nil {
+		return
 	}
+	if err = global.DB.Where("user_id = ? and friend_id = ?",
+		user.ID, friendId).First(&models.Relation{}).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = errors.New("好友关系不存在")
+			return
+		} else {
+			return fmt.Errorf("删除好友失败: %w", err)
+		}
+	}
+
+	tx := global.DB.Begin()
+	defer closeTransactions(tx, err)
+
 	return nil
 }

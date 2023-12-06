@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gIM/internal/Init"
-	"gIM/internal/config"
-	"gIM/internal/server"
+	"github.com/woxQAQ/gim/internal/server"
+	"github.com/woxQAQ/gim/internal/Init"
+	"github.com/woxQAQ/gim/internal/config"
 )
 
 // @title API文档

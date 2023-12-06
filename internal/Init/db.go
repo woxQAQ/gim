@@ -2,12 +2,12 @@ package Init
 
 import (
 	"fmt"
-	"gIM/internal/global"
-	"gIM/internal/models"
 	"log"
 	"os"
 	"time"
 
+	"github.com/woxQAQ/gim/internal/global"
+	"github.com/woxQAQ/gim/internal/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
