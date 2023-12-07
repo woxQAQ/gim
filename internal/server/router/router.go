@@ -15,13 +15,16 @@ func RegisterGin(router *gin.Engine) {
 	v1 := router.Group("/v1")
 	{
 		// user api
-		User := v1.Group("/user")
+		auth := v1.Group("/auth")
 		{
-			User.POST("/login", users.Login)
-			User.POST("/signup", users.Signup)
-			User.GET("/:name", users.InfoUser)
-			User.POST("/update", jwt.JWY(), users.UpdateUser)
-			User.DELETE("/delete", jwt.JWY(), users.DelUser)
+			auth.POST("/login", users.Login)
+			auth.POST("/signup", users.Signup)
+		}
+		User := v1.Group("/users")
+		{
+			User.GET("/:id", users.InfoUser)
+			User.POST("/:id", jwt.JWY(), users.UpdateUser)
+			User.DELETE("/:id", jwt.JWY(), users.DelUser)
 		}
 	}
 

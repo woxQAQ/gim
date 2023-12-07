@@ -194,7 +194,7 @@ func DelUser(ctx *gin.Context) {
 	}
 
 	user := models.UserBasic{}
-	userid, err := strconv.Atoi(ctx.Request.FormValue("id"))
+	userid, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -228,7 +228,7 @@ func DelUser(ctx *gin.Context) {
 // @Router /vi/user/signup [post]
 func InfoUser(ctx *gin.Context) {
 	// 获取用户名
-	id, err := strconv.Atoi(ctx.Request.FormValue("id"))
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -274,7 +274,7 @@ func InfoUser(ctx *gin.Context) {
 // @Param name formData string true "用户名"
 func UpdateUser(ctx *gin.Context) {
 
-	id, err := strconv.Atoi(ctx.Query("id"))
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"code":    -1,

@@ -61,10 +61,10 @@ func ParseToken(token string) (*Claims, error) {
 
 func JWY() gin.HandlerFunc {
 	return func(context *gin.Context) {
-		token := context.GetHeader("token")
+		token := context.GetHeader("Authorization")
 		if token == "" {
 			context.JSON(http.StatusUnauthorized, gin.H{
-				"message": "请输入登录时token",
+				"message": "请在请求头中的 Authorization 中增加登录后返回的token",
 			})
 			context.Abort()
 			return
