@@ -21,6 +21,7 @@ func RegisterGin(router *gin.Engine) {
 			User.POST("/signup", users.Signup)
 			User.GET("/:name", users.InfoUser)
 			User.POST("/update", jwt.JWY(), users.UpdateUser)
+			User.DELETE("/delete", jwt.JWY(), users.DelUser)
 		}
 	}
 

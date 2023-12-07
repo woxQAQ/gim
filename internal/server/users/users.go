@@ -29,7 +29,7 @@ import (
 // @Success 200
 // @Router /v1/user/login [post]
 func Login(ctx *gin.Context) {
-	Id, err := strconv.Atoi(ctx.PostForm("id"))
+	Id, err := strconv.Atoi(ctx.Request.FormValue("id"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -183,6 +183,16 @@ func Signup(ctx *gin.Context) {
 
 func DelUser(ctx *gin.Context) {
 	// todo 注销用户需要邮箱验证，手机号验证，还有密码验证，如何验证？
+
+	token := ctx.GetHeader("Authorization")
+	if token == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    -1,
+			"message": "token为空，操作不合法",
+		})
+		return
+	}
+
 	user := models.UserBasic{}
 	userid, err := strconv.Atoi(ctx.Request.FormValue("id"))
 	if err != nil {

@@ -61,7 +61,7 @@ func ParseToken(token string) (*Claims, error) {
 
 func JWY() gin.HandlerFunc {
 	return func(context *gin.Context) {
-		token := context.Query("token")
+		token := context.GetHeader("token")
 		if token == "" {
 			context.JSON(http.StatusUnauthorized, gin.H{
 				"message": "请输入登录时token",
@@ -71,14 +71,13 @@ func JWY() gin.HandlerFunc {
 		} else {
 			claims, err := ParseToken(token)
 			if err != nil {
-				context.JSON(http.StatusUnauthorized, gin.H{
-					"message": "token失效",
+				context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"message": "token无效",
 					"error":   err,
 				})
-				context.Abort()
 				return
 			} else if time.Now().Unix() > claims.ExpiredAtTime {
-				context.JSON(http.StatusUnauthorized, gin.H{
+				context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"now":     time.Now(),
 					"claims":  claims,
 					"message": "授权已过期",
