@@ -48,10 +48,7 @@ func UpdateUser(user models.UserBasic) (err error) {
 	tx := global.DB.Begin()
 	defer closeTransactions(tx, err)
 	err = tx.Model(&user).Updates(&user).Error
-	if err != nil {
-		return fmt.Errorf("更新用户失败: %w", tx.Error)
-	}
-	return nil
+	return
 }
 
 func QueryByUserName(name string) (*models.UserBasic, error) {
@@ -62,12 +59,12 @@ func QueryByUserName(name string) (*models.UserBasic, error) {
 	return &User, nil
 }
 
-func UserExist(userId uint) (bool,error){
+func UserExist(userId uint) (bool, error) {
 	var User models.UserBasic
 	if err := global.DB.Where("ID = ?", userId).First(&User).Error; err != nil {
 		return false, err
 	}
-	
+
 	return true, nil
 }
 

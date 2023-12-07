@@ -6,10 +6,10 @@ replace (
 	github.com/woxQAQ/gim/docs => ./docs
 	github.com/woxQAQ/gim/internal => ./internal
 	github.com/woxQAQ/gim/internal/db => ./internal/db
-	github.com/woxQAQ/gim/internal/models => ./internal/models
 	github.com/woxQAQ/gim/internal/global => ./internal/global
 	github.com/woxQAQ/gim/internal/init => ./internal/init
 	github.com/woxQAQ/gim/internal/middleware/jwt => ./internal/middleware/jwt
+	github.com/woxQAQ/gim/internal/models => ./internal/models
 	github.com/woxQAQ/gim/internal/server/user => ./internal/server/user
 )
 

@@ -19,11 +19,12 @@ func closeTransactions(tx *gorm.DB, err error) {
 		if err != nil {
 			log.Println("Failed to commit transaction:", err)
 			tx.Rollback()
+			return
 		}
 	}
 }
 
-func userStructValid(user models.UserBasic) (err error) {
+func userStructValid(user *models.UserBasic) (err error) {
 	if ok, err := vad.ValidateStruct(user); !ok {
 		return fmt.Errorf("用户结构不完整")
 	} else if err != nil {

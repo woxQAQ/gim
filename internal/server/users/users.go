@@ -5,6 +5,7 @@ package users
 // 包括登陆，注册，获取用户信息（有限的），注销用户
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -31,9 +32,9 @@ func Login(ctx *gin.Context) {
 	Id, err := strconv.Atoi(ctx.PostForm("id"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"code" : -1,
+			"code":    -1,
 			"message": "登录失败",
-			"error": err,
+			"error":   err,
 		})
 		return
 	}
@@ -48,7 +49,7 @@ func Login(ctx *gin.Context) {
 
 		statusCode := http.StatusInternalServerError
 		msg := "其他错误"
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			msg = "用户不存在"
 			statusCode = http.StatusBadRequest
 		}
@@ -84,13 +85,13 @@ func Login(ctx *gin.Context) {
 	}
 	// 鉴权成功
 
-	for i := 0; i < 3; i++  {
+	for i := 0; i < 3; i++ {
 		err = db.UpdateUser(data)
 		if err != nil {
 			zap.S().Info("更新数据失败")
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
-				"message": fmt.Sprintf("更新数据失败,正在重传, 重传次数: %x", i),
+				"message": fmt.Sprintf("更新数据失败,正在重传, 重传次数: %x", i+1),
 			})
 			continue
 		}
@@ -148,21 +149,27 @@ func Signup(ctx *gin.Context) {
 
 	t := time.Now()
 	user := models.UserBasic{
-		Name: Name,
+		Name:       Name,
+		LogOutTime: t,
+		LoginTime:  t,
 	}
-	user.LogOutTime = t
-	user.LoginTime = t
-	user.HeartBeatTime = t
 
-	salt := getSalt()
+	salt, err := getSalt()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "注册失败：生成salt失败",
+			"err":     err,
+		})
+		return
+	}
 	user.Password = encryptPwd(Password, salt)
 	user.Salt = salt
 
-	err := db.CreateUser(user)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    0,
-			"message": "注册成功，请进行登陆",
+	if err := db.CreateUser(user); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"code":    -1,
+			"message": "注册失败，请重试",
 			"error":   err,
 		})
 	}
@@ -175,19 +182,19 @@ func Signup(ctx *gin.Context) {
 }
 
 func DelUser(ctx *gin.Context) {
+	// todo 注销用户需要邮箱验证，手机号验证，还有密码验证，如何验证？
 	user := models.UserBasic{}
-
-	if err := ctx.Bind(&user); err != nil {
+	userid, err := strconv.Atoi(ctx.Request.FormValue("id"))
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
-			"message": "获取ID失败",
+			"message": "获取id失败",
 		})
 		return
 	}
+	user.ID = uint(userid)
 
-	err := db.DeleteUser(user)
-	if err != nil {
-		zap.S().Info("删除用户失败", err)
+	if err := db.DeleteUser(user); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"code":    -1,
 			"message": "删除用户失败",
@@ -211,11 +218,18 @@ func DelUser(ctx *gin.Context) {
 // @Router /vi/user/signup [post]
 func InfoUser(ctx *gin.Context) {
 	// 获取用户名
-	name := ctx.Param("name")
-
-	users, err := db.QueryByUserName(name)
+	id, err := strconv.Atoi(ctx.Request.FormValue("id"))
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    -1,
+			"message": "获取id失败",
+		})
+		return
+	}
+	uid := uint(id)
+	users, err := db.QueryById(uid)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
 			"message": "不存在此用户",
 		})
@@ -225,6 +239,7 @@ func InfoUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "查询成功",
+		// 只返回部分信息
 		"data": models.UserBasic{
 			Name:       users.Name,
 			Gender:     users.Gender,
@@ -260,17 +275,26 @@ func UpdateUser(ctx *gin.Context) {
 	user := models.UserBasic{}
 	user.ID = uint(id)
 
-	Name := ctx.PostForm("name")
-	Password := ctx.PostForm("password")
-	Email := ctx.PostForm("email")
-	Phone := ctx.PostForm("phone")
-	Gender := ctx.PostForm("gender")
+	Name := ctx.Request.FormValue("name")
+	Password := ctx.Request.FormValue("password")
+	Email := ctx.Request.FormValue("email")
+	Phone := ctx.Request.FormValue("phone")
+	Gender := ctx.Request.FormValue("gender")
 
 	if Name != "" {
 		user.Name = Name
 	}
 	if Password != "" {
-		user.Password = Password
+		salt, err := getSalt()
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"code":    -1,
+				"message": "获取盐值失败",
+			})
+			return
+		}
+		user.Salt = salt
+		user.Password = encryptPwd(Password, salt)
 	}
 	if Email != "" {
 		user.Email = Email

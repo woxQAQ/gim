@@ -21,13 +21,13 @@ type UserBasic struct {
 	Avatar        string
 	ClientIp      string `valid:"ipv4"`
 	ClientPort    int
-	Salt          string
+	Salt          string `valid:"required"`
 	Online        bool
 	LoginTime     time.Time `gorm:"column:login_time"`
 	HeartBeatTime time.Time `gorm:"column:heart_beat_time"`
 	LogOutTime    time.Time `gorm:"column:logout_time"`
 	// Friends 是好友列表
-	Friends []uint
+	Friends map[uint]bool
 }
 
 func (UserBasic) TableName() string {

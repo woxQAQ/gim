@@ -12,13 +12,13 @@ func md5Encoder(password, salt string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func getSalt() string {
+func getSalt() (string, error) {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }
 
 func encryptPwd(password, salt string) string {
