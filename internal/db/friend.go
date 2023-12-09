@@ -64,12 +64,12 @@ func FriendListByUser(user models.UserBasic) ([]models.UserBasic, error) {
 
 // CreateRelation 用于向数据库中添加新的 Relation 行
 // 当用户发起好友请求，就会向数据库中添加新的关系
-func CreateRelation(userId uint, friendId uint) (err error) {
+func CreateRelation(userId uint, friendId uint) (relation models.Relation, err error) {
 	relations := []models.Relation{
 		{
 			UserId:   userId,
 			FriendId: friendId,
-			Status:   models.Pending,
+			Status:   models.Sending,
 		},
 		{
 			UserId:   friendId,
@@ -83,6 +83,7 @@ func CreateRelation(userId uint, friendId uint) (err error) {
 
 	// 插入元素
 	err = tx.Create(&relations).Error
+	relation = relations[0]
 	return
 }
 

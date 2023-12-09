@@ -4,7 +4,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// friend godoc
+// friend_basic godoc
 // 好友模块表设计如下
 // ## 好友基础表
 // - 好友应该是双向的
@@ -20,10 +20,12 @@ import (
 // - 好友分组
 // - 好友状态
 // todo 群聊是否要单独另建表？
+
 type Status int
 
 const (
 	Accepted Status = iota
+	Sending
 	Pending
 	Rejected
 	Blocked

@@ -5,8 +5,9 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	_ "github.com/woxQAQ/gim/docs"
+	"github.com/woxQAQ/gim/internal/api/friends"
+	"github.com/woxQAQ/gim/internal/api/users"
 	"github.com/woxQAQ/gim/internal/middleware/jwt"
-	"github.com/woxQAQ/gim/internal/server/users"
 )
 
 func RegisterGin(router *gin.Engine) {
@@ -23,8 +24,12 @@ func RegisterGin(router *gin.Engine) {
 		User := v1.Group("/users")
 		{
 			User.GET("/:id", users.InfoUser)
-			User.POST("/:id", jwt.JWY(), users.UpdateUser)
+			User.PUT("/:id", jwt.JWY(), users.UpdateUser)
 			User.DELETE("/:id", jwt.JWY(), users.DelUser)
+		}
+		friend := v1.Group("/friend")
+		{
+			friend.POST("/:id", jwt.JWY(), friends.SendFriendRequest)
 		}
 	}
 

@@ -7,6 +7,7 @@ package users
 import (
 	"errors"
 	"fmt"
+	"github.com/woxQAQ/gim/pkg/util"
 	"net/http"
 	"strconv"
 	"time"
@@ -194,7 +195,7 @@ func DelUser(ctx *gin.Context) {
 	}
 
 	user := models.UserBasic{}
-	userid, err := strconv.Atoi(ctx.Param("id"))
+	userid, err := util.ConvParamToUINT(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -202,7 +203,7 @@ func DelUser(ctx *gin.Context) {
 		})
 		return
 	}
-	user.ID = uint(userid)
+	user.ID = userid
 
 	if err := db.DeleteUser(user); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -228,7 +229,7 @@ func DelUser(ctx *gin.Context) {
 // @Router /vi/user/signup [post]
 func InfoUser(ctx *gin.Context) {
 	// 获取用户名
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := util.ConvParamToUINT(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -236,8 +237,7 @@ func InfoUser(ctx *gin.Context) {
 		})
 		return
 	}
-	uid := uint(id)
-	users, err := db.QueryById(uid)
+	users, err := db.QueryById(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -274,7 +274,7 @@ func InfoUser(ctx *gin.Context) {
 // @Param name formData string true "用户名"
 func UpdateUser(ctx *gin.Context) {
 
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := util.ConvParamToUINT(ctx, "id")
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"code":    -1,
@@ -283,7 +283,7 @@ func UpdateUser(ctx *gin.Context) {
 		return
 	}
 	user := models.UserBasic{}
-	user.ID = uint(id)
+	user.ID = id
 
 	Name := ctx.Request.FormValue("name")
 	Password := ctx.Request.FormValue("password")
