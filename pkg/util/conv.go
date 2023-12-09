@@ -22,3 +22,15 @@ func StringToUint(param string) (uint, error) {
 	}
 	return uint(target), nil
 }
+
+func ToUintSlice(params []string) ([]uint, error) {
+	var result []uint
+	for _, param := range params {
+		target, err := StringToUint(param)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, target)
+	}
+	return result, nil
+}

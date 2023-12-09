@@ -28,8 +28,18 @@ func fetchFriends(user models.UserBasic) ([]models.UserBasic, error) {
 	return friends, nil
 }
 
-// GetFriendListByUserId 使用用户 Id 检索好友列表
-func GetFriendListByUserId(userId uint) ([]models.UserBasic, error) {
+func FetchFriendsByIds(friendIds []uint) ([]models.UserBasic, error) {
+	friends := make([]models.UserBasic, 0, len(friendIds))
+	err := global.DB.Find(&friends, friendIds).Error
+	if err != nil {
+		return nil, fmt.Errorf("查询好友失败: %w", err)
+	}
+
+	return friends, nil
+}
+
+// FetchFriendListByUserId 使用用户 Id 检索好友列表
+func FetchFriendListByUserId(userId uint) ([]models.UserBasic, error) {
 	// 查找 UserID 的所有好友
 	user, err := QueryById(userId)
 	if err != nil {
@@ -58,6 +68,19 @@ func FriendListByUser(user models.UserBasic) ([]models.UserBasic, error) {
 		return nil, err
 	}
 	return friends, err
+}
+
+func FetchRequestById(userId uint) ([]models.Relation, error) {
+	relations := make([]models.Relation, 0)
+	err := global.DB.Where(map[string]interface{}{
+		"UserId": userId,
+		"Status": models.Sending,
+	}).Find(&relations).Error
+	//err := global.DB.Find(&relations, "UserId = ?", userId, "Status = ?", models.Pending).Error
+	if err != nil {
+		return nil, err
+	}
+	return relations, nil
 }
 
 /* 创建 */

@@ -41,7 +41,7 @@ type Relation struct {
 	// FriendId 朋友的用户ID
 	FriendId uint `gorm:"index"`
 
-	// status 表示当前关系的状态，存在以下几种状态
+	// Status 表示当前关系的状态，存在以下几种状态
 	// 1. accepted 已接受，是好友状态
 	// 2. pending 待处理
 	// 3. rejected 拒绝

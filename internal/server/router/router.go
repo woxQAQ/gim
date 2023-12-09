@@ -30,6 +30,7 @@ func RegisterGin(router *gin.Engine) {
 		friend := v1.Group("/friend")
 		{
 			friend.POST("/:id", jwt.JWY(), friends.SendFriendRequest)
+			friend.GET("/", jwt.JWY(), friends.GetFriendList)
 		}
 	}
 
