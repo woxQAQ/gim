@@ -30,6 +30,7 @@ func initServer() {
 		log.Fatalln("Fail to load config section internal/config/app.ini, section server, error:", err)
 	}
 	global.HttpPort = sec.Key("HTTP_PORT").MustInt(8000)
+	global.RecallTimes = sec.Key("RECALL_TIMES").MustInt(100)
 }
 
 func initJWT() {

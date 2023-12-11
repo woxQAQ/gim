@@ -4,6 +4,7 @@ go 1.21
 
 replace (
 	github.com/woxQAQ/gim/docs => ./docs
+	github.com/woxQAQ/gim/pkg/util => ./pkg/util
 	github.com/woxQAQ/gim/internal => ./internal
 	github.com/woxQAQ/gim/internal/db => ./internal/db
 	github.com/woxQAQ/gim/internal/global => ./internal/global
@@ -11,6 +12,10 @@ replace (
 	github.com/woxQAQ/gim/internal/middleware/jwt => ./internal/middleware/jwt
 	github.com/woxQAQ/gim/internal/models => ./internal/models
 	github.com/woxQAQ/gim/internal/server/user => ./internal/server/user
+
+	github.com/woxQAQ/gim/internal/api => ./internal/api
+	github.com/woxQAQ/gim/internal/api/users => ./internal/api/users
+	github.com/woxQAQ/gim/internal/api/friends => ./internal/api/friends
 )
 
 require (
@@ -58,7 +63,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
-	github.com/spf13/cast v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

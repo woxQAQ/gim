@@ -17,6 +17,7 @@ var (
 	ReadTimeOut  time.Duration
 	WriteTimeOut time.Duration
 	JwtSecret    string
+	RecallTimes  int
 )
 
 var (

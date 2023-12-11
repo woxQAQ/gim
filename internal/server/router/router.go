@@ -18,7 +18,7 @@ func RegisterGin(router *gin.Engine) {
 		// user api
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/login", users.Login)
+			auth.POST("/login", users.LoginById)
 			auth.POST("/signup", users.Signup)
 		}
 		User := v1.Group("/users")
@@ -33,5 +33,4 @@ func RegisterGin(router *gin.Engine) {
 			friend.GET("/", jwt.JWY(), friends.GetFriendList)
 		}
 	}
-
 }

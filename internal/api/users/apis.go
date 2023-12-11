@@ -7,6 +7,10 @@ package users
 import (
 	"errors"
 	"fmt"
+	"github.com/woxQAQ/gim/internal/db"
+	"github.com/woxQAQ/gim/internal/global"
+	"github.com/woxQAQ/gim/internal/middleware/jwt"
+	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/pkg/util"
 	"net/http"
 	"strconv"
@@ -14,23 +18,36 @@ import (
 
 	vad "github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
-	"github.com/woxQAQ/gim/internal/db"
-	"github.com/woxQAQ/gim/internal/global"
-	"github.com/woxQAQ/gim/internal/middleware/jwt"
-	"github.com/woxQAQ/gim/internal/models"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
-// Login godoc
+type loginMsg struct {
+	UserId string `json:"id"`
+	// userName string
+	UserPwd string `json:"password"`
+}
+
+// LoginById godoc
 // @Summary 登陆
 // @Description 使用用户名和密码进行登陆，并返回授权token
 // @Accept json
 // @Produce json
 // @Success 200
 // @Router /v1/user/login [post]
-func Login(ctx *gin.Context) {
-	Id, err := strconv.Atoi(ctx.Request.FormValue("id"))
+func LoginById(ctx *gin.Context) {
+	var loginMessage loginMsg
+	err := ctx.ShouldBindJSON(&loginMessage)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"code":    -1,
+			"message": "传输格式错误",
+			"error":   err,
+		})
+		return
+	}
+	Id, err := strconv.Atoi(loginMessage.UserId)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"code":    -1,
@@ -40,8 +57,7 @@ func Login(ctx *gin.Context) {
 		return
 	}
 	userId := uint(Id)
-	// userName := ctx.PostForm("name")
-	userPwd := ctx.PostForm("password")
+	userPwd := loginMessage.UserPwd
 
 	// 确认用户存在
 	data, err := db.QueryById(userId)
@@ -86,17 +102,17 @@ func Login(ctx *gin.Context) {
 	}
 	// 鉴权成功
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < global.RecallTimes; i++ {
 		err = db.UpdateUser(data)
 		if err != nil {
 			zap.S().Info("更新数据失败")
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":    -1,
 				"message": fmt.Sprintf("更新数据失败,正在重传, 重传次数: %x", i+1),
+				"error":   err.Error(),
 			})
 			continue
 		}
-
 		// 返回 token
 		zap.S().Info("更新数据成功")
 		ctx.JSON(http.StatusOK, gin.H{
@@ -106,6 +122,11 @@ func Login(ctx *gin.Context) {
 		})
 		return
 	}
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"code":    -1,
+		"message": "服务器更新数据失败！请重新登录",
+		"error":   err.Error(),
+	})
 }
 
 // Signup godoc
