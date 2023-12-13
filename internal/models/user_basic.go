@@ -8,8 +8,9 @@ import (
 
 type UserBasic struct {
 	gorm.Model
-	Name     string `valid:"required"`
-	Password string `valid:"required"`
+	Name string `valid:"required" json:"name"`
+	// Password 是密码
+	Password string `valid:"required" json:"password"`
 	Gender   string `gorm:"column:gender;default:male;type:varchar(6) comment'性别'"`
 	Phone    string `valid:"match(1^[3~9]{1}\\d{9}$)"`
 	Email    string `valid:"email"`
@@ -26,6 +27,7 @@ type UserBasic struct {
 	LoginTime     time.Time `gorm:"column:login_time"`
 	HeartBeatTime time.Time `gorm:"column:heart_beat_time"`
 	LogOutTime    time.Time `gorm:"column:logout_time"`
+	Birthday      time.Time `gorm:"column:birthday"`
 	// Friends 是好友列表
 	Friends map[uint]bool
 }

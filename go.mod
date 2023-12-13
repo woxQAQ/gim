@@ -4,18 +4,21 @@ go 1.21
 
 replace (
 	github.com/woxQAQ/gim/docs => ./docs
-	github.com/woxQAQ/gim/pkg/util => ./pkg/util
 	github.com/woxQAQ/gim/internal => ./internal
+
+	github.com/woxQAQ/gim/internal/api => ./internal/api
+	github.com/woxQAQ/gim/internal/api/friends => ./internal/api/friends
+	github.com/woxQAQ/gim/internal/api/users => ./internal/api/users
 	github.com/woxQAQ/gim/internal/db => ./internal/db
 	github.com/woxQAQ/gim/internal/global => ./internal/global
 	github.com/woxQAQ/gim/internal/init => ./internal/init
 	github.com/woxQAQ/gim/internal/middleware/jwt => ./internal/middleware/jwt
 	github.com/woxQAQ/gim/internal/models => ./internal/models
+	github.com/woxQAQ/gim/internal/server/auth => ./internal/server/auth
+	github.com/woxQAQ/gim/internal/server/gateway => ./internal/server/gateway
 	github.com/woxQAQ/gim/internal/server/user => ./internal/server/user
-
-	github.com/woxQAQ/gim/internal/api => ./internal/api
-	github.com/woxQAQ/gim/internal/api/users => ./internal/api/users
-	github.com/woxQAQ/gim/internal/api/friends => ./internal/api/friends
+	github.com/woxQAQ/gim/pkg/protocal => ./pkg/protocol
+	github.com/woxQAQ/gim/pkg/util => ./pkg/util
 )
 
 require (
@@ -23,10 +26,13 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.1.0
 	github.com/gorilla/websocket v1.5.1
+	github.com/panjf2000/gnet v1.6.7
+	github.com/panjf2000/gnet/v2 v2.3.3
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.2
 	go.uber.org/zap v1.26.0
+	google.golang.org/protobuf v1.31.0
 	gopkg.in/ini.v1 v1.67.0
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
@@ -60,18 +66,21 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/panjf2000/ants/v2 v2.8.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.6.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.16.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

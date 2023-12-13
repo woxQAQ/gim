@@ -2,11 +2,11 @@ package Init
 
 import (
 	"fmt"
+	"github.com/woxQAQ/gim/config"
 	"log"
 	"os"
 	"time"
 
-	"github.com/woxQAQ/gim/internal/global"
 	"github.com/woxQAQ/gim/internal/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -15,7 +15,7 @@ import (
 
 func Initdb() {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		global.DBUser, global.DBPwd, global.DBHost, global.DBName)
+		config.DBUser, config.DBPwd, config.DBHost, config.DBName)
 
 	Logger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -26,13 +26,13 @@ func Initdb() {
 			Colorful:                  true,
 		})
 	var err error
-	global.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+	config.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: Logger,
 	})
 	if err != nil {
 		panic(err)
 	}
-	err = global.DB.AutoMigrate(&models.UserBasic{}, &models.Relation{})
+	err = config.DB.AutoMigrate(&models.UserBasic{}, &models.Relation{})
 	if err != nil {
 		panic(err)
 	}

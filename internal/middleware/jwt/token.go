@@ -1,12 +1,12 @@
 package jwt
 
 import (
+	"github.com/woxQAQ/gim/config"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/woxQAQ/gim/internal/global"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +22,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var secret = []byte(global.JwtSecret)
+var secret = []byte(config.JwtSecret)
 
 //var maxRefreash = 0
 

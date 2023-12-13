@@ -7,8 +7,8 @@ package users
 import (
 	"errors"
 	"fmt"
+	"github.com/woxQAQ/gim/config"
 	"github.com/woxQAQ/gim/internal/db"
-	"github.com/woxQAQ/gim/internal/global"
 	"github.com/woxQAQ/gim/internal/middleware/jwt"
 	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/pkg/util"
@@ -27,6 +27,16 @@ type loginMsg struct {
 	UserId string `json:"id"`
 	// userName string
 	UserPwd string `json:"password"`
+}
+
+type registerMsg struct {
+	UserName   string `json:"name"`
+	Password   string `json:"password"`
+	RePassword string `json:"re_password"`
+	Email      string `json:"email"`
+	Phone      string `json:"phone"`
+	Gender     string `json:"gender"`
+	Birthday   string `json:"birthday"`
 }
 
 // LoginById godoc
@@ -102,7 +112,7 @@ func LoginById(ctx *gin.Context) {
 	}
 	// 鉴权成功
 
-	for i := 0; i < global.RecallTimes; i++ {
+	for i := 0; i < config.RecallTimes; i++ {
 		err = db.UpdateUser(data)
 		if err != nil {
 			zap.S().Info("更新数据失败")
@@ -137,11 +147,25 @@ func LoginById(ctx *gin.Context) {
 // @Success 200
 // @Router /vi/user/signup [post]
 func Signup(ctx *gin.Context) {
-	Name := ctx.PostForm("name")
-	Password := ctx.PostForm("password")
-	repassword := ctx.PostForm("repassword")
-	birthday := ctx.PostForm("birthday")
+	registerMessage := registerMsg{}
+	err := ctx.ShouldBindJSON(&registerMessage)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "消息格式错误",
+			"error":   err.Error(),
+		})
+		return
+	}
+	Name := registerMessage.UserName
+	Email := registerMessage.Email
+	Phone := registerMessage.Phone
+	Gender := registerMessage.Gender
+	Password := registerMessage.Password
+	repassword := registerMessage.RePassword
+	birthday := registerMessage.Birthday
 
+	// 以下这部分内容实际上应该交给前端来做，但是为了保证前端和后端的兼容性，这里保留了一些简单的校验
 	if vad.IsNotNull(Name) || vad.IsNotNull(Password) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
@@ -158,12 +182,38 @@ func Signup(ctx *gin.Context) {
 		})
 		return
 	}
+	if !vad.IsEmail(Email) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "注册失败：邮箱格式错误",
+			"data":    Email,
+		})
+		return
+	}
+
+	if !vad.Matches(Phone, "1^[3~9]{1}\\\\d{9}$") {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "注册失败：手机号格式错误",
+			"data":    Phone,
+		})
+		return
+	}
+
 	// todo 邮箱认证or 手机号认证
-	if !vad.IsTime(birthday, global.DateTemp) {
+	if !vad.IsTime(birthday, config.DateTemp) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    -1,
 			"message": "注册失败：日期格式错误",
 			"data":    birthday,
+		})
+		return
+	}
+	if !vad.Matches(Gender, "1^(男|女)$") {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    -1,
+			"message": "注册失败：性别格式错误",
+			"data":    Gender,
 		})
 		return
 	}
@@ -205,15 +255,6 @@ func Signup(ctx *gin.Context) {
 
 func DelUser(ctx *gin.Context) {
 	// todo 注销用户需要邮箱验证，手机号验证，还有密码验证，如何验证？
-
-	token := ctx.GetHeader("Authorization")
-	if token == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"code":    -1,
-			"message": "token为空，操作不合法",
-		})
-		return
-	}
 
 	user := models.UserBasic{}
 	userid, err := util.ConvParamToUINT(ctx, "id")
@@ -271,6 +312,7 @@ func InfoUser(ctx *gin.Context) {
 		"code":    0,
 		"message": "查询成功",
 		// 只返回部分信息
+		// todo 权限管理
 		"data": models.UserBasic{
 			Name:       users.Name,
 			Gender:     users.Gender,

@@ -2,8 +2,8 @@ package db
 
 import (
 	"fmt"
+	"github.com/woxQAQ/gim/config"
 
-	"github.com/woxQAQ/gim/internal/global"
 	"github.com/woxQAQ/gim/internal/models"
 )
 
@@ -17,7 +17,7 @@ import (
 // QueryByNameAndPwd 根据用户名和密码检索用户
 func QueryByNameAndPwd(name string, password string) (models.UserBasic, error) {
 	var User models.UserBasic
-	if tx := global.DB.Where(&models.UserBasic{Name: name, Password: password}).First(&User); tx.Error != nil {
+	if tx := config.DB.Where(&models.UserBasic{Name: name, Password: password}).First(&User); tx.Error != nil {
 		return User, tx.Error
 	}
 	return User, nil
@@ -25,9 +25,9 @@ func QueryByNameAndPwd(name string, password string) (models.UserBasic, error) {
 
 // CreateUser 用来添加用户
 func CreateUser(user models.UserBasic) (err error) {
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
-	err = global.DB.Create(&user).Error
+	err = config.DB.Create(&user).Error
 	if tx.Error != nil {
 		return fmt.Errorf("创建用户失败: %w", err)
 	}
@@ -35,7 +35,7 @@ func CreateUser(user models.UserBasic) (err error) {
 }
 
 func DeleteUser(user models.UserBasic) (err error) {
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 	err = tx.Delete(&user).Error
 	if err != nil {
@@ -45,7 +45,7 @@ func DeleteUser(user models.UserBasic) (err error) {
 }
 
 func UpdateUser(user models.UserBasic) (err error) {
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 	err = tx.Model(&user).Updates(&user).Error
 	return
@@ -53,7 +53,7 @@ func UpdateUser(user models.UserBasic) (err error) {
 
 func QueryByUserName(name string) (*models.UserBasic, error) {
 	var User models.UserBasic
-	if tx := global.DB.Where(map[string]interface{}{"Name": name}).First(&User); tx.Error != nil {
+	if tx := config.DB.Where(map[string]interface{}{"Name": name}).First(&User); tx.Error != nil {
 		return nil, tx.Error
 	}
 	return &User, nil
@@ -61,7 +61,7 @@ func QueryByUserName(name string) (*models.UserBasic, error) {
 
 func UserExist(userId uint) (bool, error) {
 	var User models.UserBasic
-	if err := global.DB.Where("ID = ?", userId).First(&User).Error; err != nil {
+	if err := config.DB.Where("ID = ?", userId).First(&User).Error; err != nil {
 		return false, err
 	}
 
@@ -70,7 +70,7 @@ func UserExist(userId uint) (bool, error) {
 
 func QueryById(userId uint) (models.UserBasic, error) {
 	User := models.UserBasic{}
-	if tx := global.DB.Where("id = ?", userId).First(&User); tx.Error != nil {
+	if tx := config.DB.Where("id = ?", userId).First(&User); tx.Error != nil {
 		return User, tx.Error
 	}
 	return User, nil

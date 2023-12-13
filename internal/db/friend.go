@@ -3,9 +3,9 @@ package db
 import (
 	"errors"
 	"fmt"
+	"github.com/woxQAQ/gim/config"
 
 	vad "github.com/asaskevich/govalidator"
-	"github.com/woxQAQ/gim/internal/global"
 	"github.com/woxQAQ/gim/internal/models"
 )
 
@@ -20,7 +20,7 @@ func fetchFriends(user models.UserBasic) ([]models.UserBasic, error) {
 		return nil, errors.New("好友列表为空")
 	}
 	friends := make([]models.UserBasic, 0, len(FriendIds))
-	err := global.DB.Find(&friends, FriendIds).Error
+	err := config.DB.Find(&friends, FriendIds).Error
 	if err != nil {
 		return nil, fmt.Errorf("查询好友失败: %w", err)
 	}
@@ -30,7 +30,7 @@ func fetchFriends(user models.UserBasic) ([]models.UserBasic, error) {
 
 func FetchFriendsByIds(friendIds []uint) ([]models.UserBasic, error) {
 	friends := make([]models.UserBasic, 0, len(friendIds))
-	err := global.DB.Find(&friends, friendIds).Error
+	err := config.DB.Find(&friends, friendIds).Error
 	if err != nil {
 		return nil, fmt.Errorf("查询好友失败: %w", err)
 	}
@@ -72,7 +72,7 @@ func FriendListByUser(user models.UserBasic) ([]models.UserBasic, error) {
 
 func FetchRequestById(userId uint) ([]models.Relation, error) {
 	relations := make([]models.Relation, 0)
-	err := global.DB.Where(map[string]interface{}{
+	err := config.DB.Where(map[string]interface{}{
 		"UserId": userId,
 		"Status": models.Sending,
 	}).Find(&relations).Error
@@ -101,7 +101,7 @@ func CreateRelation(userId uint, friendId uint) (relation models.Relation, err e
 		},
 	}
 	// 开启事务
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 
 	// 插入元素
@@ -120,7 +120,7 @@ func MappingFriendToList(user *models.UserBasic, friendId uint) (err error) {
 	}
 	user.Friends[friendId] = true
 
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 
 	err = tx.Model(&user).Update("Friends", user.Friends).Error
@@ -130,14 +130,14 @@ func MappingFriendToList(user *models.UserBasic, friendId uint) (err error) {
 // 修改
 
 func UpdateFriendStatus(relation *models.Relation, status models.Status) (err error) {
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 	err = tx.Model(&relation).Update("Status", status).Error
 	return
 }
 
 func UpdateFriendAlias(relation *models.Relation, status models.Status, alias string) (err error) {
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 	err = tx.Model(&relation).Update("Alias", alias).Error
 	return
@@ -148,7 +148,7 @@ func CancelRequest(relation *models.Relation) (err error) {
 		err = errors.New("请求已处理")
 		return
 	}
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 	err = tx.Delete(&relation).Error
 	return
@@ -158,7 +158,7 @@ func DeleteFriend(user *models.UserBasic, relation *models.Relation) (err error)
 	// 开启事务
 	friendId := relation.FriendId
 	friends := user.Friends
-	tx := global.DB.Begin()
+	tx := config.DB.Begin()
 	defer closeTransactions(tx, err)
 	if err = tx.Delete(&relation).Error; err != nil {
 		return
