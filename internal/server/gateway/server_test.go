@@ -13,6 +13,9 @@ func TestServer(t *testing.T) {
 		addr:      "127.0.0.1:8080",
 		pool:      goroutine.Default(),
 	}
-	gnet.Run(gsServer, gsServer.addr)
-
+	err := gnet.Run(gsServer, gsServer.addr)
+	if err != nil {
+		t.Error("server start error: ", err)
+		return
+	}
 }

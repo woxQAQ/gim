@@ -6,6 +6,7 @@ import (
 	"github.com/panjf2000/gnet/pkg/pool/goroutine"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/woxQAQ/gim/internal/server/auth"
+	"github.com/woxQAQ/gim/pkg/requests"
 	"sync/atomic"
 )
 
@@ -32,7 +33,7 @@ func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	// 要从客户端连接中获取token来鉴权
 	// todo
 	logging.Infof("new connection: %s\n", c.RemoteAddr().String())
-	c.SetContext(auth.AuthenticateReq{})
+	c.SetContext(new(requests.AuthenticateReq))
 	atomic.AddInt32(&s.connected, 1)
 	out = []byte("connection establishing...\n")
 	action = gnet.None
@@ -40,13 +41,27 @@ func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 }
 
 func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
-	authMsg := c.Context().(auth.AuthenticateReq)
-	if !auth.IsAuthenticated(authMsg) {
+	logging.Infof("message arrived: %s\n", c.RemoteAddr().String())
+	buf := make([]byte, 512)
+	_, err := c.Read(buf)
+	if err != nil {
+		c.Close()
+		return
+	}
+	fmt.Println(buf)
+	req := &requests.AuthenticateReq{}
+	err = req.Unmarshal(buf)
+	if err != nil {
 		return gnet.Close
 	}
-	s.connected++
-	client := NewClient(authMsg.UserName, authMsg.Token, c)
-	MapInstance.Set(authMsg.UserName, client)
+	if !auth.IsAuthenticated(req) {
+		c.Write([]byte("authentication failed\n"))
+		return gnet.Close
+	}
+	logging.Infof("authentication success: %s\n", req.UserName)
+	client := NewClient(req.UserName, req.Token, c)
+	MapInstance.Set(req.UserName, client)
+	c.Write([]byte("welcome\n"))
 	return
 }
 

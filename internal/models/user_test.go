@@ -3,7 +3,6 @@ package models
 import (
 	"testing"
 
-	"github.com/woxQAQ/gim/internal/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -14,7 +13,7 @@ func Test_models(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	err = db.AutoMigrate(&models.UserBasic{})
+	err = db.AutoMigrate(&UserBasic{})
 	if err != nil {
 		panic(err)
 	}
