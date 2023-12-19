@@ -20,7 +20,6 @@ func RegisterGin(router *gin.Engine) {
 		{
 			auth.POST("/login", users.LoginById)
 			auth.POST("/signup", users.Signup)
-
 		}
 		User := v1.Group("/users")
 		{
