@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"time"
+	"sync"
 )
 
 func login() (string, error) {
@@ -59,13 +59,31 @@ func login() (string, error) {
 	return token, nil
 }
 
+type imClient struct {
+	*gnet.BuiltinEventEngine
+	wg sync.WaitGroup
+}
+
+func (ic *imClient) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	size := c.InboundBuffered()
+	buf := make([]byte, size)
+	_, err := c.Read(buf)
+	if err != nil {
+		return gnet.Close
+	}
+	fmt.Printf("receive data, %v\n", string(buf))
+	ic.wg.Done()
+	return
+}
+
 func main() {
 	// 首先进行登陆
 	token, err := login()
 	if err != nil {
 		panic(err)
 	}
-	imClient, err := gnet.NewClient(&gnet.BuiltinEventEngine{})
+	ic := &imClient{wg: sync.WaitGroup{}}
+	client, err := gnet.NewClient(ic)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +94,11 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt)
 
 	//c, err := net.Dial("tcp", u.Host)
-	c, err := imClient.Dial("tcp", u.Host)
+	c, err := client.Dial("tcp", u.Host)
+	err = client.Start()
+	if err != nil {
+		return
+	}
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
@@ -84,9 +106,6 @@ func main() {
 		logging.Infof("connection stop: %s\n", c.LocalAddr().String())
 		c.Close()
 	}()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
 
 	req := message.NewRequest(message.ReqTemp, &message.RequestData{
 		"message": "hello, im",
@@ -99,11 +118,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	buf := make([]byte, 512)
-	_, err = c.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-	logging.Infof("message arrived: %s\n", string(buf))
+	ic.wg.Add(2)
+	ic.wg.Wait()
 }
