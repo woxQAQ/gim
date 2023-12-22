@@ -1,4 +1,4 @@
-package errorhandler
+package errors
 
 import "errors"
 
@@ -9,4 +9,7 @@ var (
 	ErrUserNotFound         = errors.New("user not found")
 	ErrMessageNotRequest    = errors.New("message is not request")
 	ErrCommonTransferTo     = errors.New("common request transfer to unique request failed")
+	ErrTokenInvalid         = errors.New("token invalid")
+	ErrAuthMessageNotFound  = errors.New("auth message not found")
+	ErrTemp                 = errors.New("temp error")
 )

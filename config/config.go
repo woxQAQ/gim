@@ -9,7 +9,7 @@ import (
 func InitConfig() {
 	var err error
 
-	Cfg, err = ini.Load("internal/config/app.ini")
+	Cfg, err = ini.Load("config/app.ini")
 	if err != nil {
 		log.Fatalln("Fail to load config internal/config/app.ini, error:", err)
 	}

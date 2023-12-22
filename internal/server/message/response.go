@@ -8,16 +8,16 @@ import (
 type ResponseData map[string]any
 
 type Response struct {
-	code_ int32
-	data_ *ResponseData
-	err   string
+	Code_ int32        `json:"code"`
+	Data_ ResponseData `json:"data"`
+	Err   string       `json:"err"`
 }
 
-func NewResponse(code_ int32, data_ *ResponseData, err string) *Response {
+func NewResponse(code_ int32, data_ ResponseData, err string) *Response {
 	return &Response{
-		code_: code_,
-		data_: data_,
-		err:   err,
+		Code_: code_,
+		Data_: data_,
+		Err:   err,
 	}
 }
 
@@ -25,12 +25,12 @@ func (r *Response) Marshal() ([]byte, error) {
 	// todo
 	temp := struct {
 		Code int32
-		Data *ResponseData
+		Data ResponseData
 		Err  string
 	}{
-		Code: r.code_,
-		Data: r.data_,
-		Err:  r.err,
+		Code: r.Code_,
+		Data: r.Data_,
+		Err:  r.Err,
 	}
 	return json.Marshal(temp)
 }
@@ -39,7 +39,7 @@ func (r *Response) UnMarshal(bytes []byte) error {
 	// todo
 	temp := struct {
 		Code int32
-		Data *ResponseData
+		Data ResponseData
 		Err  string
 	}{}
 
@@ -47,9 +47,9 @@ func (r *Response) UnMarshal(bytes []byte) error {
 	if err != nil {
 		return err
 	}
-	r.code_ = temp.Code
-	r.data_ = temp.Data
-	r.err = temp.Err
+	r.Code_ = temp.Code
+	r.Data_ = temp.Data
+	r.Err = temp.Err
 	return nil
 }
 

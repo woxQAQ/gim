@@ -3,18 +3,12 @@ package gateway
 import (
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"net"
 	"testing"
 )
 
 func TestServer(t *testing.T) {
-	gsServer := &gatewayServer{
-		Multicore: true,
-		Network:   "tcp",
-		Addr:      "127.0.0.1:8080",
-		Pool:      goroutine.Default(),
-	}
+	gsServer := newGatewayServer("tcp", "127.0.0.1:8088", true)
 	err := gnet.Run(gsServer, gsServer.Network+"://"+gsServer.Addr)
 	if err != nil {
 		t.Error("gatewayServer start error: ", err)

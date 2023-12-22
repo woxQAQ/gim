@@ -1,4 +1,4 @@
-package gateway
+package server
 
 import (
 	"github.com/panjf2000/gnet/v2"

@@ -1,42 +1,42 @@
 package gateway
 
 import (
-	"github.com/panjf2000/gnet/v2/pkg/logging"
+	"github.com/valyala/fasthttp"
+	"github.com/woxQAQ/gim/internal/errors"
 	"github.com/woxQAQ/gim/internal/server/message"
 )
 
-func authHandler(s *gatewayServer, data *message.AuthenticateRequest) error {
-	// 获取与转发层的连接
-
-	toTransferConn, err := s.connMap.GetRandomConn()
-	if err != nil {
-		return err
-	}
-
+// authHandler 当数据到来时，对连接进行鉴权。当然，不是所有连接都需要鉴权
+// 鉴权成功后，我们会将session保存在redis中，其中包括
+// - sessionID
+// - userId
+// - token
+// - conn
+// - token销毁时间
+func authHandler(buf *message.RequestBuffer) error {
 	// 编码数据
-	jsonData, err := data.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = toTransferConn.Write(jsonData)
-	if err != nil {
-		return err
-	}
-	logging.Infof("waiting for response...\n")
-	err = toTransferConn.Flush()
-	if err != nil {
+	token := buf.GetToken()
+
+	userId := buf.GetUserId()
+
+	client := &fasthttp.Client{}
+	req := fasthttp.AcquireRequest()
+	req.SetRequestURI("http://127.0.0.1:11111/v1/auth" + "?" + "userId=" + userId)
+	req.Header.SetMethod("POST")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", token)
+
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	if err := client.Do(req, resp); err != nil {
 		return err
 	}
 
-	// 等待响应
-	_, err = toTransferConn.Read(jsonData)
-	if err != nil {
-		return err
-	}
-	response := message.Response{}
-	err = response.UnMarshal(jsonData)
-	if err != nil {
-		return err
+	if resp.StatusCode() != 200 {
+		return errors.ErrAuthenticationFailed
 	}
 
 	return nil

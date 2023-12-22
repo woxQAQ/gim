@@ -18,5 +18,5 @@ func main() {
 	config.InitConfig()
 	Init.Initdb()
 	Init.InitLogger()
-	server.Start()
+	server.StartWebServer()
 }

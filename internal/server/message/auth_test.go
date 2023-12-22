@@ -9,9 +9,9 @@ func TestAuth(t *testing.T) {
 	req := AuthenticateRequest{
 		type_: ReqAuthenticate,
 		data_: &AuthenticateData{
-			Token:    "token",
-			UserName: "username",
-			Password: "password",
+			Token:   "token",
+			UserId:  "username",
+			UserPwd: "password",
 		},
 	}
 	data, _ := req.Marshal()
@@ -21,7 +21,7 @@ func TestAuth(t *testing.T) {
 }
 
 func TestCommon(t *testing.T) {
-	req := CommonRequest{
+	req := RequestBuffer{
 		type_: ReqAuthenticate,
 		data_: &map[string]string{
 			"token":    "token",
@@ -30,7 +30,7 @@ func TestCommon(t *testing.T) {
 		},
 	}
 	data, _ := req.Marshal()
-	request := CommonRequest{}
+	request := RequestBuffer{}
 	_ = request.UnMarshal(data)
 	logging.Infof("request: %v\n", request)
 }

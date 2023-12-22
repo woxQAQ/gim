@@ -12,7 +12,6 @@ type Server struct {
 	Network   string
 	Addr      string
 	Connected int32
-	Type      int32
 	Pool      *goroutine.Pool
 	ReqHandler
 }
@@ -20,22 +19,6 @@ type Server struct {
 type ReqHandler interface {
 	// OnRequest is called when a request is received from client
 	OnRequest(msg interface{}, c gnet.Conn) error
-}
-
-const (
-	ServerTypeGateway = iota
-	ServerTypeTransfer
-)
-
-func (s *Server) ServerName() string {
-	switch s.Type {
-	case ServerTypeGateway:
-		return "gateway"
-	case ServerTypeTransfer:
-		return "transfer"
-	default:
-		return "unknown"
-	}
 }
 
 func NewServer(network string, addr string, multicore bool) *Server {

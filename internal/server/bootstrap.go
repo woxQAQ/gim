@@ -7,7 +7,7 @@ import (
 	"github.com/woxQAQ/gim/internal/server/router"
 )
 
-func Start() {
+func StartWebServer() {
 	r := gin.Default()
 	router.RegisterGin(r)
 	gin.SetMode(config.RunMode)

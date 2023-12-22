@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"github.com/woxQAQ/gim/config"
+	"github.com/woxQAQ/gim/internal/errors"
 	"net/http"
 	"time"
 
@@ -16,9 +17,9 @@ type Jwt struct {
 }
 
 type Claims struct {
-	UserName      string `json:"userName"`
-	Password      string `json:"password"`
-	ExpiredAtTime int64  `json:"expired_time"`
+	UserId string `json:"user_id"`
+	//Password      string `json:"password"`
+	ExpiredAtTime int64 `json:"expired_time"`
 	jwt.RegisteredClaims
 }
 
@@ -26,13 +27,13 @@ var secret = []byte(config.JwtSecret)
 
 //var maxRefreash = 0
 
-func GenerateToken(userName string, password string, iss string) (string, error) {
+func GenerateToken(userid string, iss string) (string, error) {
 	now := time.Now()
 	expired := now.Add(3 * time.Hour)
 
 	claims := Claims{
-		UserName:      userName,
-		Password:      password,
+		UserId: userid,
+		//Password:      password,
 		ExpiredAtTime: expired.Unix(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    iss,
@@ -59,35 +60,61 @@ func ParseToken(token string) (*Claims, error) {
 	return nil, err
 }
 
-func JWY() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		token := context.GetHeader("Authorization")
-		if token == "" {
-			context.JSON(http.StatusUnauthorized, gin.H{
-				"message": "请在请求头中的 Authorization 中增加登录后返回的token",
+func Auth(context *gin.Context) {
+	token := context.GetHeader("Authorization")
+	if token == "" {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"code":    -1,
+			"message": "请在请求头中的 Authorization 中增加登录后返回的token",
+		})
+	} else {
+		// 验证token
+		userId := context.Query("userId")
+		claims, err := ParseToken(token)
+		if err != nil {
+			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code": -1,
+				"data": gin.H{
+					"message": "解析token时出错，token不合法",
+				},
+				"err": err.Error(),
 			})
-			context.Abort()
 			return
-		} else {
-			claims, err := ParseToken(token)
-			if err != nil {
-				context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-					"message": "token无效",
-					"error":   err,
-				})
-				return
-			} else if time.Now().Unix() > claims.ExpiredAtTime {
-				context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+		} else if time.Now().Unix() > claims.ExpiredAtTime {
+			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code": -1,
+				"data": gin.H{
+					"message": "授权已过期",
 					"now":     time.Now(),
 					"claims":  claims,
-					"message": "授权已过期",
-				})
-				context.Abort()
-				return
-			}
+				},
+				"err": errors.ErrAuthenticationFailed.Error(),
+			})
+			return
+		} else if claims.UserId != userId {
+			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code": -1,
+				"data": gin.H{
+					"message": "授权失败",
+				},
+				"err": errors.ErrAuthenticationFailed.Error(),
+			})
+			return
 		}
-
+		context.JSON(http.StatusOK, gin.H{
+			"code": 0,
+			"data": gin.H{
+				"message": "授权成功",
+			},
+			"err": "",
+		})
 		zap.S().Info("token认证")
+	}
+}
+
+func JWY() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		Auth(context)
 		context.Next()
 	}
 }
