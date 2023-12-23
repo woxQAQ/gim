@@ -19,7 +19,6 @@ type Jwt struct {
 type Claims struct {
 	UserId string `json:"user_id"`
 	//Password      string `json:"password"`
-	ExpiredAtTime int64 `json:"expired_time"`
 	jwt.RegisteredClaims
 }
 
@@ -34,7 +33,6 @@ func GenerateToken(userid string, iss string) (string, error) {
 	claims := Claims{
 		UserId: userid,
 		//Password:      password,
-		ExpiredAtTime: expired.Unix(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    iss,
 			ExpiresAt: jwt.NewNumericDate(expired),
@@ -80,7 +78,7 @@ func Auth(context *gin.Context) {
 				"err": err.Error(),
 			})
 			return
-		} else if time.Now().Unix() > claims.ExpiredAtTime {
+		} else if time.Now().Unix() > claims.RegisteredClaims.ExpiresAt.Unix() {
 			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code": -1,
 				"data": gin.H{
@@ -104,7 +102,8 @@ func Auth(context *gin.Context) {
 		context.JSON(http.StatusOK, gin.H{
 			"code": 0,
 			"data": gin.H{
-				"message": "授权成功",
+				"expired_time": claims.RegisteredClaims.ExpiresAt.Unix(),
+				"message":      "授权成功",
 			},
 			"err": "",
 		})

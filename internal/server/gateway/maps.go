@@ -3,12 +3,20 @@ package gateway
 import (
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
-	"github.com/woxQAQ/gim/internal/server"
 	"math/rand"
 	"sync"
 	"time"
 )
 
+// userSession 保存用户的连接,键为userid，值为userConn
+type userSession struct {
+	conn        gnet.Conn
+	userId      string
+	token       string
+	expiredTime time.Time
+}
+
+// clientMap 用于保存鉴权成功后的客户端与网关的连接
 type clientMap struct {
 	sync.Map
 }
@@ -27,8 +35,6 @@ type safeSlice struct {
 // 需要实现；当转发层传递消息给网关层时，网关层需要将消息转发给客户端
 var clientMapInstance *clientMap
 
-var connAuthMapInstance *connMap
-
 // connMapInstance 是 ConnMap的唯一实例，用于存储网关层和转发层的连接
 var connMapInstance *connMap
 
@@ -45,12 +51,6 @@ func init() {
 				list: make([]string, 0),
 			},
 		}
-		connAuthMapInstance = &connMap{
-			s: safeSlice{
-				mu:   sync.RWMutex{},
-				list: make([]string, 0),
-			},
-		}
 	})
 }
 
@@ -58,20 +58,24 @@ func GetConnId(c gnet.Conn) string {
 	return c.RemoteAddr().String()
 }
 
-func (m *clientMap) Set(key string, value *server.Client) {
-	if c, ok := m.Load(key); ok {
-		clients := c.([]*server.Client)
-		clients = append(clients, value)
-		m.Store(key, clients)
+func (m *clientMap) Set(connId string, value *userSession) {
+	if _, ok := m.Load(connId); ok {
+		// 已经存在
+		return
 	}
-	var clients []*server.Client
-	clients = append(clients, value)
-	m.Store(key, clients)
+	m.Store(connId, value)
 }
 
 func (m *clientMap) IsExist(conn *gnet.Conn) bool {
 	_, ok := m.Load(GetConnId(*conn))
 	return ok
+}
+
+func (m *clientMap) Get(conn *gnet.Conn) *userSession {
+	if v, ok := m.Load(GetConnId(*conn)); ok {
+		return v.(*userSession)
+	}
+	return nil
 }
 
 // connMap

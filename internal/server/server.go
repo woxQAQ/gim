@@ -1,8 +1,10 @@
 package server
 
 import (
+	"github.com/go-redis/redis/v8"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
+	redismanager "github.com/woxQAQ/gim/internal/server/redis"
 )
 
 type Server struct {
@@ -13,6 +15,8 @@ type Server struct {
 	Addr      string
 	Connected int32
 	Pool      *goroutine.Pool
+	RedisConn *redis.Client
+	Client    *gnet.Client
 	ReqHandler
 }
 
@@ -22,10 +26,12 @@ type ReqHandler interface {
 }
 
 func NewServer(network string, addr string, multicore bool) *Server {
+	rds := redismanager.InitRedis()
 	return &Server{
 		Network:   network,
 		Addr:      addr,
 		Multicore: multicore,
+		RedisConn: rds,
 		Pool:      goroutine.Default(),
 	}
 }

@@ -2,8 +2,8 @@ package gateway
 
 import (
 	"github.com/valyala/fasthttp"
-	"github.com/woxQAQ/gim/internal/errors"
 	"github.com/woxQAQ/gim/internal/server/message"
+	"time"
 )
 
 // authHandler 当数据到来时，对连接进行鉴权。当然，不是所有连接都需要鉴权
@@ -13,7 +13,7 @@ import (
 // - token
 // - conn
 // - token销毁时间
-func authHandler(buf *message.RequestBuffer) error {
+func authHandler(buf *message.RequestBuffer) (time.Time, error) {
 	// 编码数据
 	token := buf.GetToken()
 
@@ -31,13 +31,15 @@ func authHandler(buf *message.RequestBuffer) error {
 	defer fasthttp.ReleaseRequest(req)
 	defer fasthttp.ReleaseResponse(resp)
 
-	if err := client.Do(req, resp); err != nil {
-		return err
+	response := message.Response{}
+	err := client.Do(req, resp)
+	if err != nil {
+		return time.Time{}, err
 	}
-
+	err = response.UnMarshal(resp.Body())
 	if resp.StatusCode() != 200 {
-		return errors.ErrAuthenticationFailed
+		return time.Time{}, err
 	}
 
-	return nil
+	return response.Data_["expired_time"].(time.Time), nil
 }

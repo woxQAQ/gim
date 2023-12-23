@@ -1,13 +1,15 @@
 package gateway
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"github.com/woxQAQ/gim/internal/errors"
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
 	"sync/atomic"
+	"time"
 )
 
 type GwServer struct {
@@ -15,7 +17,7 @@ type GwServer struct {
 	gatewayId         string
 	clientMap         *clientMap
 	connToTransferMap *connMap
-	connToAuthMap     *connMap
+	toTransferChan    chan error
 }
 
 func (s *GwServer) ConnToTransfer(gsClient *gnet.Client) {
@@ -40,7 +42,7 @@ func NewGatewayServer(network string, addr string, multicore bool) *GwServer {
 		gatewayId(addr),
 		clientMapInstance,
 		connMapInstance,
-		connAuthMapInstance,
+		make(chan error),
 	}
 }
 
@@ -48,6 +50,7 @@ func (s *GwServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	logging.Infof("running gateway servers on %s with multi-core=%t\n",
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	// 创建网关层客户端
+	// todo 网关客户端编程
 	gsClient, err := gnet.NewClient(s)
 	if err != nil {
 		panic(err)
@@ -92,36 +95,78 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 			logging.Infof("[ERROR] gateway Server %s write error: %v\n", err)
 			return gnet.Close
 		}
-		err = c.Flush()
-		if err != nil {
-			logging.Errorf("[ERROR] gateway Server %s flush error: %v\n", err)
-			return gnet.Close
-		}
 		return gnet.Close
 	}
 
 	// 3. 鉴权
-	err = authHandler(req)
-	if err != nil {
-		logging.Infof("[ERROR] %v", err)
-		return gnet.Close
-	}
-	s.clientMap.Set(req.GetUserId(), c)
+	value := s.clientMap.Get(&c)
+	// 如果 value不存在，或者 token 过期，则需要重新鉴权
+	if value == nil || value.expiredTime.Unix() < time.Now().Unix() {
+		// todo 鉴权进阶：心跳包，
+		// 如果仅仅因为 token 过期就要重新鉴权, 则未免过于繁琐
+		expiredAt, err := authHandler(req)
+		if err != nil {
+			logging.Infof("[ERROR] error: %v\n", err)
+			_, err = c.Write([]byte("auth error\n"))
+			if err != nil {
+				logging.Infof("[ERROR] gateway Server %s write error: %v\n", err)
+				return gnet.Close
+			}
+			return gnet.Close
+		}
 
+		// 填写结构体
+		uc := userSession{
+			conn:        c,
+			userId:      req.GetUserId(),
+			token:       req.GetToken(),
+			expiredTime: expiredAt,
+		}
+
+		// 编码成json
+		ucString, err := json.Marshal(uc)
+		if err != nil {
+			logging.Infof("[ERROR] %v", err)
+			return gnet.Close
+		}
+
+		// 写入redis
+		ctx := context.Background()
+		s.RedisConn.Set(ctx, "tempSession", string(ucString), 0)
+	}
+
+	// 4. 处理客户端请求,直接发给转发层即可
 	if req.Type() == message.ReqTemp {
+		// 用作测试用例
 		logging.Infof("Test is ok")
 		c.Write([]byte("Test is ok"))
 		return gnet.None
 	}
 
-	// 3. 处理请求
-	err = s.OnRequest(req, nil)
+	// 随机获取一个连接
+	tsConn, err := s.connToTransferMap.GetRandomConn()
 	if err != nil {
 		logging.Infof("[ERROR] %v", err)
-		c.Write([]byte(err.Error()))
 		return gnet.Close
 	}
 
+	_, err = tsConn.Write(buf)
+	if err != nil {
+		logging.Infof("[ERROR] %v", err)
+		return gnet.Close
+	}
+
+	go func() {
+		_, err = tsConn.Read(buf)
+		s.toTransferChan <- err
+		return
+	}()
+
+	err = <-s.toTransferChan
+	if err != nil {
+		logging.Infof("[ERROR] %v", err)
+		return gnet.Close
+	}
 	return
 }
 
@@ -131,23 +176,9 @@ func (s *GwServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 		logging.Warnf("connection :%s closed due to: %v\n", c.RemoteAddr().String(), err)
 		return
 	}
-	logging.Infof("connection closed: %s\n", c.RemoteAddr().String())
-	// todo how to delete
-	s.clientMap.Delete(c)
+	logging.Infof("connection %s closed\n", c.RemoteAddr().String())
+	// todo how to delete?
+	ctx := context.Background()
+	s.RedisConn.Del(ctx, "UserSession")
 	return
-}
-
-// OnRequest 用来处理客户端发来的请求
-// msg 任意消息
-// todo msg类型改为any
-// c 客户端连接
-func (s *GwServer) OnRequest(req *message.RequestBuffer, c gnet.Conn) error {
-	// 每个请求都要鉴权
-	data := req.GetData()
-	msg, ok := (*data)["message"].(string)
-	if !ok {
-		return errors.ErrTemp
-	}
-	logging.Infof("message: %s\n", msg)
-	return nil
 }
