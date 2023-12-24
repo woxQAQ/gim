@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 )
 
-type transferServer struct {
+type TransferServer struct {
 	*server.Server
 	transferId     string
 	gatewayConnMap *connMap
@@ -21,15 +21,15 @@ func transferId(addr string) string {
 	return addr
 }
 
-func NewTransferServer(network string, addr string, multicore bool) *transferServer {
-	return &transferServer{
+func NewTransferServer(network string, addr string, multicore bool) *TransferServer {
+	return &TransferServer{
 		server.NewServer(network, addr, multicore),
 		transferId(addr),
 		connMapInstance,
 	}
 }
 
-func (s *transferServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
+func (s *TransferServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	logging.Infof("running server on %s with multi-core=%t\n",
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	s.Eng = eng
@@ -37,13 +37,13 @@ func (s *transferServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	return
 }
 
-func (s *transferServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+func (s *TransferServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	logging.Infof("gateway %s has been connected", c.RemoteAddr().String())
 	out = []byte(fmt.Sprintf("gateway %s has been connected, so it's time to transfer your messages\n", c.RemoteAddr().String()))
 	return
 }
 
-func (s *transferServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
+func (s *TransferServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	logging.Infof("message arrived from gateway %s\n", c.RemoteAddr().String())
 
 	size := c.InboundBuffered()
@@ -71,19 +71,20 @@ func (s *transferServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 }
 
 // OnRequest 用来处理网关层发来的请求
-func (s *transferServer) OnRequest(msg interface{}, c gnet.Conn) error {
+func (s *TransferServer) OnRequest(msg interface{}, c gnet.Conn) error {
 	request, ok := msg.(*message.RequestBuffer)
 	if !ok {
 		return errors.ErrMessageNotRequest
 	}
 	switch request.Type() {
+	case
 
 	default:
 		return nil
 	}
 }
 
-func (s *transferServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
+func (s *TransferServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		logging.Warnf("connection :%s closed due to: %v\n", c.RemoteAddr().String(), err)
 		return

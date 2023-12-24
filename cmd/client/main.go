@@ -107,7 +107,7 @@ func main() {
 		c.Close()
 	}()
 
-	req := message.NewRequest(message.ReqTemp, &message.RequestData{
+	req := message.NewRequest(message.ReqTestConn, &message.RequestData{
 		"message": "hello, im",
 	}, token, "1234")
 	jsonData, err := req.MarshalJSON()

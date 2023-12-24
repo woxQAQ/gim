@@ -5,24 +5,20 @@ import (
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	redismanager "github.com/woxQAQ/gim/internal/server/redis"
+	"sync"
 )
 
 type Server struct {
 	gnet.BuiltinEventEngine
-	Eng       gnet.Engine
-	Multicore bool
-	Network   string
-	Addr      string
-	Connected int32
-	Pool      *goroutine.Pool
-	RedisConn *redis.Client
-	Client    *gnet.Client
-	ReqHandler
-}
-
-type ReqHandler interface {
-	// OnRequest is called when a request is received from client
-	OnRequest(msg interface{}, c gnet.Conn) error
+	Eng         gnet.Engine
+	Multicore   bool
+	Network     string
+	Addr        string
+	Connected   int32
+	Pool        *goroutine.Pool
+	RedisConn   *redis.Client
+	Client      *gnet.Client
+	MessagePool *sync.Pool
 }
 
 func NewServer(network string, addr string, multicore bool) *Server {
@@ -33,5 +29,9 @@ func NewServer(network string, addr string, multicore bool) *Server {
 		Multicore: multicore,
 		RedisConn: rds,
 		Pool:      goroutine.Default(),
+		MessagePool: &sync.Pool{
+			New: func() interface{} {
+				return new(gnet.Message)
+			}},
 	}
 }

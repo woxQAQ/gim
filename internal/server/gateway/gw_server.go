@@ -136,8 +136,8 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	}
 
 	// 4. 处理客户端请求,直接发给转发层即可
-	if req.Type() == message.ReqTemp {
-		// 用作测试用例
+	if req.Type() == message.ReqTestConn {
+		// 用作测试用例,不发往转发层
 		logging.Infof("Test is ok")
 		c.Write([]byte("Test is ok"))
 		return gnet.None

@@ -16,7 +16,6 @@ import (
 func authHandler(buf *message.RequestBuffer) (time.Time, error) {
 	// 编码数据
 	token := buf.GetToken()
-
 	userId := buf.GetUserId()
 
 	client := &fasthttp.Client{}
