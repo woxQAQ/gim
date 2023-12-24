@@ -7,7 +7,8 @@ import (
 const (
 	ReqCommon = iota
 	ReqAuthenticate
-	ReqTestConn //用做测试
+	ReqTestGatewayConn //用做测试
+	ReqTestTran
 	ReqMessageSingle
 	ReqMessageGroup
 )

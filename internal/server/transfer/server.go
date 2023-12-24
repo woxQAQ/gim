@@ -77,8 +77,8 @@ func (s *TransferServer) OnRequest(msg interface{}, c gnet.Conn) error {
 		return errors.ErrMessageNotRequest
 	}
 	switch request.Type() {
-	case
-
+	case message.ReqTestTran:
+		return nil
 	default:
 		return nil
 	}
