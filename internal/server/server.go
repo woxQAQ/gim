@@ -4,6 +4,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
+	"github.com/woxQAQ/gim/internal/server/message"
 	redismanager "github.com/woxQAQ/gim/internal/server/redis"
 	"sync"
 )
@@ -18,7 +19,7 @@ type Server struct {
 	Pool        *goroutine.Pool
 	RedisConn   *redis.Client
 	Client      *gnet.Client
-	MessagePool *sync.Pool
+	RequestPool *sync.Pool
 }
 
 func NewServer(network string, addr string, multicore bool) *Server {
@@ -29,9 +30,10 @@ func NewServer(network string, addr string, multicore bool) *Server {
 		Multicore: multicore,
 		RedisConn: rds,
 		Pool:      goroutine.Default(),
-		MessagePool: &sync.Pool{
+		RequestPool: &sync.Pool{
 			New: func() interface{} {
-				return new(gnet.Message)
-			}},
+				return new(message.RequestBuffer)
+			},
+		},
 	}
 }

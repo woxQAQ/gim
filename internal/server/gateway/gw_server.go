@@ -2,15 +2,60 @@ package gateway
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
+	"sync"
 	"sync/atomic"
 	"time"
 )
+
+type gwClient struct {
+	responsePool *sync.Pool
+	gnet.EventHandler
+}
+
+var (
+	once               sync.Once
+	bufferPoolInstance *sync.Pool
+)
+
+func init() {
+	once.Do(func() {
+		bufferPoolInstance = &sync.Pool{
+			New: func() interface{} {
+				return make([]byte, 1024)
+			},
+		}
+	})
+}
+
+func (gc *gwClient) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	buf := bufferPoolInstance.Get().([]byte)
+	_, err := c.Read(buf)
+	if err != nil {
+		logging.Errorf("gateway %s read error: %v\n", c.LocalAddr().String(), err)
+		return
+	}
+	response := gc.responsePool.Get().(*message.Response)
+
+	err = response.UnMarshal(buf)
+	if err != nil {
+		logging.Errorf("gateway %s unmarshal error: %v, %v\n",
+			c.RemoteAddr().String(), err, response)
+		return
+	}
+	gc.OnResponse(response)
+	gc.responsePool.Put(buf)
+	return
+}
+
+func (gc *gwClient) OnResponse(response *message.Response) {
+	logging.Infof("response arrived: %v\n", response)
+	return
+}
 
 type GwServer struct {
 	*server.Server
@@ -20,9 +65,10 @@ type GwServer struct {
 	toTransferChan    chan error
 }
 
-func (s *GwServer) ConnToTransfer(gsClient *gnet.Client) {
-	// todo
-	tsConn, err := gsClient.Dial("tcp", "127.0.0.1:8089")
+func (s *GwServer) connToTransfer() {
+	// todo 连接多个转发层,读取配置文件
+	// 此处建立的连接是 网关客户端与转发层服务器的连接,注意区分网关服务器与客户端
+	tsConn, err := s.Client.Dial("tcp", "127.0.0.1:8089")
 	logging.Infof("dialing to ts server...\n")
 	if err != nil {
 		logging.Fatalf("failed to dial: %v", err)
@@ -51,13 +97,24 @@ func (s *GwServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	// 创建网关层客户端
 	// todo 网关客户端编程
-	gsClient, err := gnet.NewClient(s)
+	gsClient, err := gnet.NewClient(&gwClient{
+		responsePool: &sync.Pool{
+			New: func() interface{} {
+				return new(message.Response)
+			},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	err = gsClient.Start()
 	if err != nil {
 		panic(err)
 	}
 	// 需要建立与转发层的连接，
 	// todo 转发层集群，需要多条连接
-	s.ConnToTransfer(gsClient)
+	s.connToTransfer()
+	s.Client = gsClient
 	s.Eng = eng
 	return
 }
@@ -75,9 +132,8 @@ func (s *GwServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	logging.Infof("message arrived from client %s\n", c.RemoteAddr().String())
 
-	// 0. 获取缓冲区内容大小
-	size := c.InboundBuffered()
-	buf := make([]byte, size)
+	// 0. 获取缓冲区大小
+	buf := bufferPoolInstance.Get().([]byte)
 
 	// 1. 从连接获取序列化的内容
 	n, err := c.Read(buf)
@@ -87,7 +143,7 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 	//logging.Infof("message arrived: %s\n", string(buf))
 	// 2. 反序列化客户端请求
-	req := &message.RequestBuffer{}
+	req := s.RequestPool.Get().(*message.RequestBuffer)
 	if err = req.UnMarshalJSON(buf[:n]); err != nil {
 		logging.Infof("[ERROR] error: %v\n", err)
 		_, err = c.Write([]byte("unmarshal error\n"))
@@ -123,16 +179,7 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 			expiredTime: expiredAt,
 		}
 
-		// 编码成json
-		ucString, err := json.Marshal(uc)
-		if err != nil {
-			logging.Infof("[ERROR] %v", err)
-			return gnet.Close
-		}
-
-		// 写入redis
-		ctx := context.Background()
-		s.RedisConn.Set(ctx, "tempSession", string(ucString), 0)
+		s.clientMap.Set(GetConnId(c), &uc)
 	}
 
 	// 4. 处理客户端请求,直接发给转发层即可
@@ -147,22 +194,10 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	tsConn, err := s.connToTransferMap.GetRandomConn()
 	if err != nil {
 		logging.Infof("[ERROR] %v", err)
-		return gnet.Close
+		return gnet.None
 	}
 
 	_, err = tsConn.Write(buf)
-	if err != nil {
-		logging.Infof("[ERROR] %v", err)
-		return gnet.Close
-	}
-
-	go func() {
-		_, err = tsConn.Read(buf)
-		s.toTransferChan <- err
-		return
-	}()
-
-	err = <-s.toTransferChan
 	if err != nil {
 		logging.Infof("[ERROR] %v", err)
 		return gnet.Close

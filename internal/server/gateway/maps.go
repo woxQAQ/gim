@@ -38,9 +38,6 @@ var clientMapInstance *clientMap
 // connMapInstance 是 ConnMap的唯一实例，用于存储网关层和转发层的连接
 var connMapInstance *connMap
 
-// 用于实现单例
-var once sync.Once
-
 // 单例模式
 func init() {
 	once.Do(func() {

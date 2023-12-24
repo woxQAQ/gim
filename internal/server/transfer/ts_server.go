@@ -5,13 +5,12 @@ import (
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
-	"github.com/woxQAQ/gim/internal/errors"
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
 	"sync/atomic"
 )
 
-type TransferServer struct {
+type TsServer struct {
 	*server.Server
 	transferId     string
 	gatewayConnMap *connMap
@@ -21,32 +20,39 @@ func transferId(addr string) string {
 	return addr
 }
 
-func NewTransferServer(network string, addr string, multicore bool) *TransferServer {
-	return &TransferServer{
+func NewTransferServer(network string, addr string, multicore bool) *TsServer {
+	return &TsServer{
 		server.NewServer(network, addr, multicore),
 		transferId(addr),
 		connMapInstance,
 	}
 }
 
-func (s *TransferServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
+func (s *TsServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	logging.Infof("running server on %s with multi-core=%t\n",
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	s.Eng = eng
 	s.Pool = goroutine.Default()
+	client, err := gnet.NewClient(s)
+	if err != nil {
+		panic(err)
+	}
+	s.Client = client
 	return
 }
 
-func (s *TransferServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+func (s *TsServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	logging.Infof("gateway %s has been connected", c.RemoteAddr().String())
 	out = []byte(fmt.Sprintf("gateway %s has been connected, so it's time to transfer your messages\n", c.RemoteAddr().String()))
+	s.gatewayConnMap.Set(getConnId(c), &c)
 	return
 }
 
-func (s *TransferServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
+func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	logging.Infof("message arrived from gateway %s\n", c.RemoteAddr().String())
 
 	size := c.InboundBuffered()
+	// todo 对象复用
 	buf := make([]byte, size)
 
 	_, err := c.Read(buf)
@@ -55,36 +61,33 @@ func (s *TransferServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return gnet.Close
 	}
 
-	req := &message.RequestBuffer{}
+	req := s.messagePool.Get().(message.RequestBuffer)
 	if err := req.UnMarshalJSON(buf); err != nil {
 		logging.Infof("[ERROR] Gateway: %s unmarshal error: %v, %v\n",
 			c.RemoteAddr().String(), err, req)
 		c.Write([]byte("unmarshal error\n"))
 		return gnet.None
 	}
-	err = s.OnRequest(req, c)
+	err = s.OnRequest(&req, c)
 	if err != nil {
 		logging.Infof("[ERROR] Request handler error: %v", err)
 		return gnet.None
 	}
+	s.messagePool.Put(req)
 	return
 }
 
 // OnRequest 用来处理网关层发来的请求
-func (s *TransferServer) OnRequest(msg interface{}, c gnet.Conn) error {
-	request, ok := msg.(*message.RequestBuffer)
-	if !ok {
-		return errors.ErrMessageNotRequest
-	}
-	switch request.Type() {
+func (s *TsServer) OnRequest(req *message.RequestBuffer, c gnet.Conn) error {
+	switch req.Type() {
 	case message.ReqTestTran:
-		return nil
+		reqData := req.GetData()
 	default:
 		return nil
 	}
 }
 
-func (s *TransferServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
+func (s *TsServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		logging.Warnf("connection :%s closed due to: %v\n", c.RemoteAddr().String(), err)
 		return
