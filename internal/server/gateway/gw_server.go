@@ -62,7 +62,6 @@ type GwServer struct {
 	gatewayId         string
 	clientMap         *clientMap
 	connToTransferMap *connMap
-	toTransferChan    chan error
 }
 
 func (s *GwServer) connToTransfer() {
@@ -88,7 +87,6 @@ func NewGatewayServer(network string, addr string, multicore bool) *GwServer {
 		gatewayId(addr),
 		clientMapInstance,
 		connMapInstance,
-		make(chan error),
 	}
 }
 
