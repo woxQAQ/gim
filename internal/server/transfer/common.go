@@ -10,12 +10,18 @@ type connMap struct {
 }
 
 var connMapInstance *connMap
+var bufferPoolInstance *sync.Pool
 
 var once sync.Once
 
 func init() {
 	once.Do(func() {
 		connMapInstance = &connMap{}
+		bufferPoolInstance = &sync.Pool{
+			New: func() interface{} {
+				return make([]byte, 0)
+			},
+		}
 	})
 }
 

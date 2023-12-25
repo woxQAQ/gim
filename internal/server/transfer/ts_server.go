@@ -1,6 +1,7 @@
 package transfer
 
 import (
+	"context"
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
@@ -14,6 +15,10 @@ type TsServer struct {
 	*server.Server
 	transferId     string
 	gatewayConnMap *connMap
+}
+
+type transferClient struct {
+	gnet.EventHandler
 }
 
 func transferId(addr string) string {
@@ -43,7 +48,8 @@ func (s *TsServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 
 func (s *TsServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	logging.Infof("gateway %s has been connected", c.RemoteAddr().String())
-	out = []byte(fmt.Sprintf("gateway %s has been connected, so it's time to transfer your messages\n", c.RemoteAddr().String()))
+	out = []byte(fmt.Sprintf("gateway %s has been connected, "+
+		"so it's time to transfer your messages\n", c.RemoteAddr().String()))
 	s.gatewayConnMap.Set(getConnId(c), &c)
 	return
 }
@@ -51,40 +57,55 @@ func (s *TsServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	logging.Infof("message arrived from gateway %s\n", c.RemoteAddr().String())
 
-	size := c.InboundBuffered()
-	// todo 对象复用
-	buf := make([]byte, size)
-
+	buf := bufferPoolInstance.Get().([]byte)
 	_, err := c.Read(buf)
 	if err != nil {
-		logging.Infof("[ERROR] transfer: %s read error: %v\n", c.LocalAddr().String(), err.Error())
+		logging.Infof("[ERROR] transfer: %s read error: %v\n",
+			c.LocalAddr().String(), err.Error())
 		return gnet.Close
 	}
 
-	req := s.messagePool.Get().(message.RequestBuffer)
+	req := s.RequestPool.Get().(message.RequestBuffer)
 	if err := req.UnMarshalJSON(buf); err != nil {
 		logging.Infof("[ERROR] Gateway: %s unmarshal error: %v, %v\n",
 			c.RemoteAddr().String(), err, req)
 		c.Write([]byte("unmarshal error\n"))
 		return gnet.None
 	}
-	err = s.OnRequest(&req, c)
 	if err != nil {
 		logging.Infof("[ERROR] Request handler error: %v", err)
 		return gnet.None
 	}
-	s.messagePool.Put(req)
-	return
-}
 
-// OnRequest 用来处理网关层发来的请求
-func (s *TsServer) OnRequest(req *message.RequestBuffer, c gnet.Conn) error {
+	// 1.
+	// 分发层会将请求发给kafka，再经由kafka发给业务层。
+	// 对于网关层发来的消息体的处理，分发层服务器仅做一个转发功能
+	// 对于业务层发来的的消息体，则是由分发层客户端进行处理
+	// 分发层客户端的主要功能也是进行转发
+	// 当kafka向分发层客户端发送处理完的消息，
+	// 分发层客户端需要能够知道需要向哪个网关层发送消息
+
+	// 2.
+	// 很显然，分发层发送给kafka的“待处理”消息一定携带 send_id 或 receive_id，`
+	// kafka一定能知道send_id 或 receive_id。
+	// 理所当然，kafka发送给分发层的消息，一定也指定消息所要分发给的 user_id
+	// 即，分发层一定要能知道 user_id 对应的客户端所连接的网关层服务器是哪个
+
+	// 于是，此处要记录的是，从网关层发过来的消息是属于哪个客户端的？
+	// 需要将 userSession 与 gateway connid 映射起来
+
+	s.RedisConn.Set(context.Background(), req.GetUserId(), getConnId(c), 0)
+
+	// 其实，所有信息都应该直接全发给kafka的
+	// todo 发送给kafka
 	switch req.Type() {
-	case message.ReqTestTran:
-		reqData := req.GetData()
-	default:
-		return nil
+	case message.ReqTestGatewayConn:
+		// 测试用例，不发送给kafka
+		c.Write([]byte("connection established\n"))
+		return gnet.None
 	}
+	s.RequestPool.Put(req)
+	return
 }
 
 func (s *TsServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
