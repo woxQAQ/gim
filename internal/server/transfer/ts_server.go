@@ -21,6 +21,16 @@ type transferClient struct {
 	gnet.EventHandler
 }
 
+func (tc *transferClient) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	// todo 从kafka消费消息
+	return
+}
+
+func (tc *transferClient) OnClose(c gnet.Conn, err error) (action gnet.Action) {
+	logging.Infof("connection :%s closed due to: %v\n", c.RemoteAddr().String(), err)
+	return
+}
+
 func transferId(addr string) string {
 	return addr
 }
@@ -38,10 +48,15 @@ func (s *TsServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	s.Eng = eng
 	s.Pool = goroutine.Default()
-	client, err := gnet.NewClient(s)
+	client, err := gnet.NewClient(&transferClient{})
 	if err != nil {
 		panic(err)
 	}
+	err = client.Start()
+	if err != nil {
+		panic(err)
+	}
+	// todo 连接 kafka
 	s.Client = client
 	return
 }
