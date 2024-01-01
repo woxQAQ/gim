@@ -7,8 +7,11 @@ import (
 )
 
 func main() {
-	tsServer := transfer.NewTransferServer("tcp", "127.0.0.1:8089", true)
-	err := gnet.Run(tsServer, tsServer.Addr)
+	tsServer, err := transfer.NewTransferServer("tcp", "127.0.0.1:8089", true)
+	if err != nil {
+		panic(err)
+	}
+	err = gnet.Run(tsServer, tsServer.Addr)
 	if err != nil {
 		logging.Errorf("server start error: %v", err)
 		return

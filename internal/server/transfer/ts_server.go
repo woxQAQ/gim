@@ -6,6 +6,8 @@ import (
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
+	"github.com/segmentio/kafka-go"
+	"github.com/woxQAQ/gim/internal/mq"
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
 	"sync/atomic"
@@ -15,6 +17,7 @@ type TsServer struct {
 	*server.Server
 	transferId     string
 	gatewayConnMap *connMap
+	kafkaConn      *kafka.Conn
 }
 
 type transferClient struct {
@@ -35,12 +38,17 @@ func transferId(addr string) string {
 	return addr
 }
 
-func NewTransferServer(network string, addr string, multicore bool) *TsServer {
+func NewTransferServer(network string, addr string, multicore bool) (*TsServer, error) {
+	kafkaConn, err := mq.InitKafka()
+	if err != nil {
+		return nil, err
+	}
 	return &TsServer{
 		server.NewServer(network, addr, multicore),
 		transferId(addr),
 		connMapInstance,
-	}
+		kafkaConn,
+	}, nil
 }
 
 func (s *TsServer) OnBoot(eng gnet.Engine) (action gnet.Action) {

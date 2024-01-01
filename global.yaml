@@ -1,0 +1,2 @@
+# global.yaml 用来指定各个模块的配置文件的位置
+kafka_config : config/kafka.yaml

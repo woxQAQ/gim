@@ -1,0 +1,7 @@
+kafka_address:
+  - 192.168.31.172:9092
+topics:
+  - MESSAGE_transfer_to_logic
+  - MESSAGE_ack_logic_to_transfer
+  - PUSH_to_transfer
+  - PUSH_ack_to_logic
