@@ -1,37 +1,52 @@
 package transfer
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"github.com/segmentio/kafka-go"
-	"github.com/woxQAQ/gim/internal/mq"
+	"github.com/woxQAQ/gim/config"
+	"github.com/woxQAQ/gim/internal/protobuf/proto_pb"
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
+	"gopkg.in/yaml.v3"
+	"os"
 	"sync/atomic"
 )
 
 type TsServer struct {
 	*server.Server
-	transferId     string
-	gatewayConnMap *connMap
-	kafkaConn      *kafka.Conn
+	transferId       string
+	gatewayConnMap   *connMap
+	kafkaConnections *kafka.Writer
+}
+type kafkaConfig struct {
+	Address string   `yaml:"kafka_address"`
+	Topics  []string `yaml:"topics"`
 }
 
-type transferClient struct {
-	gnet.EventHandler
-}
+func connKafka() (*kafka.Writer, error) {
+	// 读取kafka配置
+	data, err := os.ReadFile(config.KafkaFilePath)
+	if err != nil {
+		return nil, err
+	}
+	var configs kafkaConfig
+	err = yaml.Unmarshal(data, &configs)
+	if err != nil {
+		return nil, err
+	}
 
-func (tc *transferClient) OnTraffic(c gnet.Conn) (action gnet.Action) {
-	// todo 从kafka消费消息
-	return
-}
+	// 连接kafka
+	kafkaWriter := &kafka.Writer{
+		Addr:     kafka.TCP(configs.Address),
+		Balancer: &kafka.LeastBytes{},
+	}
 
-func (tc *transferClient) OnClose(c gnet.Conn, err error) (action gnet.Action) {
-	logging.Infof("connection :%s closed due to: %v\n", c.RemoteAddr().String(), err)
-	return
+	return kafkaWriter, nil
 }
 
 func transferId(addr string) string {
@@ -39,7 +54,7 @@ func transferId(addr string) string {
 }
 
 func NewTransferServer(network string, addr string, multicore bool) (*TsServer, error) {
-	kafkaConn, err := mq.InitKafka()
+	kafkaConn, err := connKafka()
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +71,9 @@ func (s *TsServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	s.Eng = eng
 	s.Pool = goroutine.Default()
-	client, err := gnet.NewClient(&transferClient{})
+	client, err := gnet.NewClient(&tsClient{
+		messagePoll: bufferPoolInstance,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -80,8 +97,8 @@ func (s *TsServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	logging.Infof("message arrived from gateway %s\n", c.RemoteAddr().String())
 
-	buf := bufferPoolInstance.Get().([]byte)
-	_, err := c.Read(buf)
+	buf := bufferPoolInstance.Get().(*bytes.Buffer)
+	_, err := c.Read(buf.Bytes())
 	if err != nil {
 		logging.Infof("[ERROR] transfer: %s read error: %v\n",
 			c.LocalAddr().String(), err.Error())
@@ -89,17 +106,12 @@ func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	}
 
 	req := s.RequestPool.Get().(message.RequestBuffer)
-	if err := req.UnMarshalJSON(buf); err != nil {
+	if err := req.UnMarshalJSON(buf.Bytes()); err != nil {
 		logging.Infof("[ERROR] Gateway: %s unmarshal error: %v, %v\n",
 			c.RemoteAddr().String(), err, req)
-		c.Write([]byte("unmarshal error\n"))
 		return gnet.None
 	}
-	if err != nil {
-		logging.Infof("[ERROR] Request handler error: %v", err)
-		return gnet.None
-	}
-
+	// 使用完毕，放回
 	// 1.
 	// 分发层会将请求发给kafka，再经由kafka发给业务层。
 	// 对于网关层发来的消息体的处理，分发层服务器仅做一个转发功能
@@ -119,15 +131,28 @@ func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 	s.RedisConn.Set(context.Background(), req.GetUserId(), getConnId(c), 0)
 
+	// lazy load
+	getTopicToReqMap()
+
 	// 其实，所有信息都应该直接全发给kafka的
+	// 首先根据请求类型，找到对应的topic
+	// 其次，获得消息，一个萝卜一个坑
+	// 任何消息发送的时候，前端都要校验内容与类型是否是一一对应的
+	// 此处理论上不应该再校验
 	// todo 发送给kafka
+	buf.Reset()
+	reqTopic := topicToReqMap[req.Type()]
 	switch req.Type() {
-	case message.ReqTestGatewayConn:
-		// 测试用例，不发送给kafka
-		c.Write([]byte("connection established\n"))
-		return gnet.None
+	case message.ReqSingleMessage:
 	}
+	err = s.kafkaConnections.WriteMessages(context.Background(),
+		kafka.Message{
+			Topic: reqTopic,
+			Value:
+		},
+	)
 	s.RequestPool.Put(req)
+
 	return
 }
 

@@ -3,17 +3,21 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/panjf2000/gnet/pkg/logging"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/woxQAQ/gim/internal/api/users"
+	"github.com/woxQAQ/gim/internal/protobuf/proto_pb"
 	"github.com/woxQAQ/gim/internal/server/message"
+	"google.golang.org/protobuf/proto"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 )
 
 func login() (string, error) {
@@ -80,44 +84,89 @@ func main() {
 	// 首先进行登陆
 	token, err := login()
 	if err != nil {
-		panic(err)
-	}
-	ic := &imClient{wg: sync.WaitGroup{}}
-	client, err := gnet.NewClient(ic)
-	if err != nil {
+		logging.Errorf("loginging error: %v", err.Error())
 		panic(err)
 	}
 
-	// todo 发起websocket连接
-	u := url.URL{Scheme: "ws", Host: "127.0.0.1:8088", Path: "/"}
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	//c, err := net.Dial("tcp", u.Host)
-	c, err := client.Dial("tcp", u.Host)
-	err = client.Start()
 	if err != nil {
-		return
+		panic(err)
 	}
+
+	//header := &http.Header{}
+	// todo 发起websocket连接
+	websocket.
+		u := url.URL{Scheme: "ws", Host: "127.0.0.1:8088", Path: "/"}
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
 	defer func() {
-		logging.Infof("connection stop: %s\n", c.LocalAddr().String())
+		logging.Infof("connection stop: %s\n", conn.LocalAddr().String())
 		c.Close()
 	}()
 
-	req := message.NewRequest(message.ReqTestGatewayConn, &message.RequestData{
-		"message": "hello, im",
-	}, token, "1234")
-	jsonData, err := req.MarshalJSON()
-	if err != nil {
-		panic(err)
+	done := make(chan struct{})
+	//req := message.NewRequest(message.ReqTestGatewayConn, &message.RequestData{
+	//	"message": "hello, im",
+	//}, token, "1234")
+	go func() {
+		defer close(done)
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				logging.Errorf("goroutine error: %v", err.Error())
+				return
+			}
+			logging.Infof("recv: %v", message)
+		}
+	}()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			var msgContent string
+			_, err = fmt.Scan(msgContent)
+			if err != nil {
+				logging.Infof("panic: %v", err.Error())
+				panic(err)
+			}
+			msg := &proto_pb.SingleMessage{
+				Content:    msgContent,
+				SenderId:   1,
+				ReceiverId: 2,
+				Timestamp:  time.Now().Unix(),
+			}
+			buf, err := proto.Marshal(msg)
+			if err != nil {
+				logging.Infof("panic: %v", err.Error())
+				panic(err)
+			}
+			err = conn.WriteMessage(websocket.TextMessage, buf)
+			if err != nil {
+				logging.Infof("panic: %v", err.Error())
+				panic(err)
+			}
+		case <-interrupt:
+			logging.Infof("Exiting")
+			err = conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			if err != nil {
+				logging.Infof("panic: %v", err.Error())
+				panic(err)
+			}
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+			}
+			return
+		}
 	}
-	_, err = c.Write(jsonData)
-	if err != nil {
-		panic(err)
-	}
-	ic.wg.Add(2)
-	ic.wg.Wait()
 }

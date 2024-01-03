@@ -7,10 +7,13 @@ import (
 const (
 	ReqCommon = iota
 	ReqAuthenticate
-	ReqTestGatewayConn //用做测试
+
+	// 用做测试
+	ReqTestGatewayConn
 	ReqTestTran
-	ReqMessageSingle
-	ReqMessageGroup
+
+	ReqSingleMessage
+	ReqGroupMessage
 )
 
 type RequestData map[string]any

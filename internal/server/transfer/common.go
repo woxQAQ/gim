@@ -1,7 +1,9 @@
 package transfer
 
 import (
+	"bytes"
 	"github.com/panjf2000/gnet/v2"
+	"github.com/woxQAQ/gim/internal/server/message"
 	"sync"
 )
 
@@ -19,10 +21,22 @@ func init() {
 		connMapInstance = &connMap{}
 		bufferPoolInstance = &sync.Pool{
 			New: func() interface{} {
-				return make([]byte, 0)
+				return &bytes.Buffer{}
 			},
 		}
 	})
+}
+
+var topicToReqMap map[int]string
+
+func initTopicToReqMap() {
+	topicToReqMap = map[int]string{}
+	topicToReqMap[message.ReqSingleMessage] = "SINGLE_MESSAGE_TRANSFER_TO_LOGIC"
+	topicToReqMap[message.ReqGroupMessage] = "GROUP_MESSAGE_TRANSFER_TO_LOGIC"
+}
+
+func getTopicToReqMap() {
+	once.Do(initTopicToReqMap)
 }
 
 func getConnId(conn gnet.Conn) string {

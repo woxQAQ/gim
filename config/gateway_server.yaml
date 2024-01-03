@@ -1,2 +1,3 @@
+# todo complete gateway server config
 auth_address : 127.0.0.1:11111
 auth_URL : /v1/auth
