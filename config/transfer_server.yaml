@@ -1,3 +1,2 @@
 # todo complete transfer_server.yaml
-transfer_address: 127.0.0.1
-port: 8089
+transfer_address: 127.0.0.1:8086

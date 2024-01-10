@@ -1,3 +1,6 @@
 # todo complete gateway server config
+gateway_tcp_address : 127.0.0.1:8089
+gateway_websocket_address : 127.0.0.1:8099
 auth_address : 127.0.0.1:11111
 auth_URL : /v1/auth
+transfer_address: 127.0.0.1:8086

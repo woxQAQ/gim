@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+type Loader interface {
+	Load(name string)
+}
+
 var DB *gorm.DB
 
 var Cfg *ini.File
@@ -31,10 +35,14 @@ var (
 
 var DateTemp = "2006-01-01"
 
-var KafkaFilePath string
+var KafkaConfigPath string
+var TransferConfigPath string
+var GatewayConfigPath string
 
-type files struct {
-	KafkaConfig string `yaml:"kafka_config"`
+type defaultConfigFilesPath struct {
+	KafkaConfig    string `yaml:"kafka_config"`
+	TransferConfig string `yaml:"transfer_config"`
+	GatewayConfig  string `yaml:"gateway_config"`
 }
 
 func init() {
@@ -43,10 +51,12 @@ func init() {
 		panic(err)
 	}
 
-	var config files
+	var config defaultConfigFilesPath
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		panic(err)
 	}
-	KafkaFilePath = config.KafkaConfig
+	KafkaConfigPath = config.KafkaConfig
+	TransferConfigPath = config.TransferConfig
+	GatewayConfigPath = config.GatewayConfig
 }

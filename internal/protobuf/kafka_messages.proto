@@ -5,10 +5,11 @@ option go_package = "./proto_pb";
 
 // SingleMessage 用于单聊消息
 message SingleMessage{
-    string content = 1;
-    uint64 sender_id = 2;
-    uint64 receiver_id = 3;
-    int64 timestamp = 4;
+    uint64 message_id = 1;
+    string content = 2;
+    uint64 sender_id = 3;
+    uint64 receiver_id = 4;
+    int64 timestamp = 5;
 }
 
 // GroupMessage 用于群聊消息

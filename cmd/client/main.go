@@ -97,8 +97,7 @@ func main() {
 
 	//header := &http.Header{}
 	// todo 发起websocket连接
-	websocket.
-		u := url.URL{Scheme: "ws", Host: "127.0.0.1:8088", Path: "/"}
+	u := url.URL{Scheme: "ws", Host: "127.0.0.1:8088", Path: "/"}
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)

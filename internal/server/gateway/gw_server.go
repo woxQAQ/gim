@@ -5,39 +5,60 @@ import (
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
+	"github.com/woxQAQ/gim/config"
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
+	"gopkg.in/yaml.v3"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-var (
-	once               sync.Once
-	bufferPoolInstance *sync.Pool
-)
-
-func init() {
-	once.Do(func() {
-		bufferPoolInstance = &sync.Pool{
-			New: func() interface{} {
-				return make([]byte, 1024)
-			},
-		}
-	})
+type GwConfig struct {
+	TcpAddress       string `yaml:"gateway_tcp_address"`
+	WebsocketAddress string `yaml:"gateway_websocket_address"`
+	AuthAddress      string `yaml:"auth_address"`
+	AuthURL          string `yaml:"auth_url"`
+	TransferAddress  string `yaml:"transfer_address"`
 }
 
 type GwServer struct {
 	*server.Server
-	gatewayId         string
 	clientMap         *clientMap
 	connToTransferMap *connMap
+	*GwConfig
+	//wsUpgrader        *websocket.Upgrader
+}
+
+func NewGatewayServer(network string, multicore bool) *GwServer {
+	gwconfig := GwConfig{}
+	buf := bufferPoolInstance.Get().([]byte)
+	// 清空 buf
+	buf = buf[:0]
+	buf, err := os.ReadFile(config.GatewayConfigPath)
+	if err != nil {
+		logging.Errorf("NewGatewayServer Error: os.ReadFile Error: %v\n", err.Error())
+		panic(err)
+	}
+	err = yaml.Unmarshal(buf, gwconfig)
+	if err != nil {
+		logging.Errorf("NewGatewayServer Error: yaml.Unmarshal Error: %v\n", err.Error())
+		panic(err)
+	}
+	bufferPoolInstance.Put(buf)
+	return &GwServer{
+		server.NewServer(network, multicore),
+		clientMapInstance,
+		connMapInstance,
+		&gwconfig,
+	}
 }
 
 func (s *GwServer) connToTransfer() {
 	// todo 连接多个转发层,读取配置文件
 	// 此处建立的连接是 网关客户端与转发层服务器的连接,注意区分网关服务器与客户端
-	tsConn, err := s.Client.Dial("tcp", "127.0.0.1:8089")
+	tsConn, err := s.Client.Dial("tcp", s.TransferAddress)
 	logging.Infof("dialing to ts server...\n")
 	if err != nil {
 		logging.Fatalf("failed to dial: %v", err)
@@ -47,22 +68,9 @@ func (s *GwServer) connToTransfer() {
 	s.connToTransferMap.Set(GetConnId(tsConn), &tsConn)
 }
 
-func gatewayId(addr string) string {
-	return addr
-}
-
-func NewGatewayServer(network string, addr string, multicore bool) *GwServer {
-	return &GwServer{
-		server.NewServer(network, addr, multicore),
-		gatewayId(addr),
-		clientMapInstance,
-		connMapInstance,
-	}
-}
-
 func (s *GwServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	logging.Infof("running gateway servers on %s with multi-core=%t\n",
-		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
+		fmt.Sprintf("%s://%s", s.Network, s.TcpAddress), s.Multicore)
 	// 创建网关层客户端
 	// todo 网关客户端编程
 	gsClient, err := gnet.NewClient(&gwClient{
@@ -80,10 +88,11 @@ func (s *GwServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 		panic(err)
 	}
 	// 需要建立与转发层的连接，
+
 	// todo 转发层集群，需要多条连接
-	s.connToTransfer()
 	s.Client = gsClient
 	s.Eng = eng
+	s.connToTransfer()
 	return
 }
 
@@ -102,6 +111,7 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 	// 0. 获取缓冲区大小
 	buf := bufferPoolInstance.Get().([]byte)
+	buf = buf[:0]
 
 	// 1. 从连接获取序列化的内容
 	n, err := c.Read(buf)

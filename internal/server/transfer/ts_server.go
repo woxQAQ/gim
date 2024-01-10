@@ -30,7 +30,7 @@ type kafkaConfig struct {
 
 func connKafka() (*kafka.Writer, error) {
 	// 读取kafka配置
-	data, err := os.ReadFile(config.KafkaFilePath)
+	data, err := os.ReadFile(config.KafkaConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +144,10 @@ func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	reqTopic := topicToReqMap[req.Type()]
 	switch req.Type() {
 	case message.ReqSingleMessage:
+		singleMessage := &proto_pb.SingleMessage{
+
+		}
+		buf.Write([]byte(singleMessage.String()))
 	}
 	err = s.kafkaConnections.WriteMessages(context.Background(),
 		kafka.Message{

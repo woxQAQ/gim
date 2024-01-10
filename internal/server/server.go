@@ -14,7 +14,6 @@ type Server struct {
 	Eng         gnet.Engine
 	Multicore   bool
 	Network     string
-	Addr        string
 	Connected   int32
 	Pool        *goroutine.Pool
 	RedisConn   *redis.Client
@@ -22,11 +21,10 @@ type Server struct {
 	RequestPool *sync.Pool
 }
 
-func NewServer(network string, addr string, multicore bool) *Server {
+func NewServer(network string, multicore bool) *Server {
 	rds := redismanager.InitRedis()
 	return &Server{
 		Network:   network,
-		Addr:      addr,
 		Multicore: multicore,
 		RedisConn: rds,
 		Pool:      goroutine.Default(),
