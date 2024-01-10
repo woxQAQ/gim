@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/panjf2000/gnet/v2"
 	"math/rand"
 	"sync"
@@ -16,11 +17,27 @@ type userSession struct {
 	expiredTime time.Time
 }
 
+type websocketSessionMap struct {
+	sync.Map
+}
+
+type wsSession struct {
+	// mgr 标识了连接所保存到的连接管理器
+	mgr *WebsocketConnManager
+
+	// conn websocket长连接
+	conn *websocket.Conn
+
+	// messageChan 用于接收来自客户端的消息
+	messageChan chan []byte
+}
+
 // clientMap 用于保存鉴权成功后的客户端与网关的连接
 type clientMap struct {
 	sync.Map
 }
 
+// connMap 用于保存网关层和转发层的连接
 type connMap struct {
 	sync.Map
 	// s 负责存储所有的 connID，为了实现负载均衡（随机调度）
@@ -31,12 +48,16 @@ type safeSlice struct {
 	list []string
 }
 
-// clientMapInstance ClientMap的唯一实例，用于存储网关层与客户端的连接
-// 需要实现；当转发层传递消息给网关层时，网关层需要将消息转发给客户端
-var clientMapInstance *clientMap
+var (
+	// clientMapInstance ClientMap的唯一实例，用于存储网关层与客户端的连接
+	// 需要实现；当转发层传递消息给网关层时，网关层需要将消息转发给客户端
+	clientMapInstance *clientMap
 
-// connMapInstance 是 ConnMap的唯一实例，用于存储网关层和转发层的连接
-var connMapInstance *connMap
+	// connMapInstance 是 ConnMap的唯一实例，用于存储网关层和转发层的连接
+	connMapInstance *connMap
+
+	websocketSessionMapInstance *websocketSessionMap
+)
 
 // 单例模式
 func init() {
@@ -49,6 +70,13 @@ func init() {
 			},
 		}
 	})
+}
+
+func (ws *websocketSessionMap) set(connId string, session wsSession) {
+	if _, ok := ws.Load(connId); ok {
+		return
+	}
+	ws.Store(connId, session)
 }
 
 func GetConnId(c gnet.Conn) string {

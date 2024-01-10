@@ -5,55 +5,11 @@ import (
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"github.com/woxQAQ/gim/config"
-	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
-	"gopkg.in/yaml.v3"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-type GwConfig struct {
-	TcpAddress       string `yaml:"gateway_tcp_address"`
-	WebsocketAddress string `yaml:"gateway_websocket_address"`
-	AuthAddress      string `yaml:"auth_address"`
-	AuthURL          string `yaml:"auth_url"`
-	TransferAddress  string `yaml:"transfer_address"`
-}
-
-type GwServer struct {
-	*server.Server
-	clientMap         *clientMap
-	connToTransferMap *connMap
-	*GwConfig
-	//wsUpgrader        *websocket.Upgrader
-}
-
-func NewGatewayServer(network string, multicore bool) *GwServer {
-	gwconfig := GwConfig{}
-	buf := bufferPoolInstance.Get().([]byte)
-	// 清空 buf
-	buf = buf[:0]
-	buf, err := os.ReadFile(config.GatewayConfigPath)
-	if err != nil {
-		logging.Errorf("NewGatewayServer Error: os.ReadFile Error: %v\n", err.Error())
-		panic(err)
-	}
-	err = yaml.Unmarshal(buf, gwconfig)
-	if err != nil {
-		logging.Errorf("NewGatewayServer Error: yaml.Unmarshal Error: %v\n", err.Error())
-		panic(err)
-	}
-	bufferPoolInstance.Put(buf)
-	return &GwServer{
-		server.NewServer(network, multicore),
-		clientMapInstance,
-		connMapInstance,
-		&gwconfig,
-	}
-}
 
 func (s *GwServer) connToTransfer() {
 	// todo 连接多个转发层,读取配置文件

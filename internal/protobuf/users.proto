@@ -1,5 +1,7 @@
 syntax = "proto3";
 package message;
+
+option go_package = "./proto_pb";
 // Permission 标识本用户个人信息对于其他人的权限
 enum Permission {
     // 所有人可见
