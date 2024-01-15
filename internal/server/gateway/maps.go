@@ -2,11 +2,11 @@ package gateway
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/panjf2000/gnet/v2"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/panjf2000/gnet/v2"
 )
 
 // userSession 保存用户的连接,键为userid，值为userConn
@@ -19,17 +19,6 @@ type userSession struct {
 
 type websocketSessionMap struct {
 	sync.Map
-}
-
-type wsSession struct {
-	// mgr 标识了连接所保存到的连接管理器
-	mgr *WebsocketConnManager
-
-	// conn websocket长连接
-	conn *websocket.Conn
-
-	// messageChan 用于接收来自客户端的消息
-	messageChan chan []byte
 }
 
 // clientMap 用于保存鉴权成功后的客户端与网关的连接

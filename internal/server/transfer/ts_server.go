@@ -4,6 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"regexp"
+	"sync"
+	"sync/atomic"
+
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
@@ -13,22 +18,25 @@ import (
 	"github.com/woxQAQ/gim/internal/server"
 	"github.com/woxQAQ/gim/internal/server/message"
 	"gopkg.in/yaml.v3"
-	"os"
-	"sync/atomic"
 )
+
+type transferConfig struct {
+	Addr string `yaml:"transfer_address"`
+}
 
 type TsServer struct {
 	*server.Server
-	transferId       string
-	gatewayConnMap   *connMap
-	kafkaConnections *kafka.Writer
+	gatewayConnMap *connMap
+	kafkaWriters   *sync.Map
+	*transferConfig
 }
+
 type kafkaConfig struct {
 	Address string   `yaml:"kafka_address"`
 	Topics  []string `yaml:"topics"`
 }
 
-func connKafka() (*kafka.Writer, error) {
+func connKafka() (*sync.Map, error) {
 	// 读取kafka配置
 	data, err := os.ReadFile(config.KafkaConfigPath)
 	if err != nil {
@@ -39,30 +47,57 @@ func connKafka() (*kafka.Writer, error) {
 	if err != nil {
 		return nil, err
 	}
+	pattern := "^TRANSFER"
+	re := regexp.MustCompile(pattern)
 
-	// 连接kafka
-	kafkaWriter := &kafka.Writer{
-		Addr:     kafka.TCP(configs.Address),
-		Balancer: &kafka.LeastBytes{},
+	writermap := &sync.Map{}
+	for _, topic := range configs.Topics {
+		if re.MatchString(topic) {
+			writer := kafka.Writer{
+				Addr:     kafka.TCP(configs.Address),
+				Topic:    topic,
+				Balancer: &kafka.LeastBytes{},
+			}
+			writermap.Store(topic, writer)
+		}
 	}
 
-	return kafkaWriter, nil
+	return writermap, nil
 }
 
 func transferId(addr string) string {
 	return addr
 }
 
-func NewTransferServer(network string, addr string, multicore bool) (*TsServer, error) {
-	kafkaConn, err := connKafka()
+func NewTransferServer(network string, multicore bool) (*TsServer, error) {
+	// kafkaConn, err := connKafka()
+
+	// kafka config read
+	kafkaconfigdata, err := os.ReadFile(config.KafkaConfigPath)
 	if err != nil {
 		return nil, err
 	}
+	kafkaconfig := kafkaConfig{}
+	err = yaml.Unmarshal(kafkaconfigdata, &kafkaconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	transferconfigdata, err := os.ReadFile(config.TransferConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	var trConfig transferConfig
+	err = yaml.Unmarshal(transferconfigdata, &trConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &TsServer{
-		server.NewServer(network, addr, multicore),
-		transferId(addr),
+		server.NewServer(network, multicore),
 		connMapInstance,
 		kafkaConn,
+		&trConfig,
 	}, nil
 }
 
@@ -144,15 +179,12 @@ func (s *TsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	reqTopic := topicToReqMap[req.Type()]
 	switch req.Type() {
 	case message.ReqSingleMessage:
-		singleMessage := &proto_pb.SingleMessage{
-
-		}
+		singleMessage := &proto_pb.SingleMessage{}
 		buf.Write([]byte(singleMessage.String()))
 	}
 	err = s.kafkaConnections.WriteMessages(context.Background(),
 		kafka.Message{
 			Topic: reqTopic,
-			Value:
 		},
 	)
 	s.RequestPool.Put(req)

@@ -3,6 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"os/signal"
+	"sync"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/panjf2000/gnet/pkg/logging"
 	"github.com/panjf2000/gnet/v2"
@@ -11,13 +19,6 @@ import (
 	"github.com/woxQAQ/gim/internal/protobuf/proto_pb"
 	"github.com/woxQAQ/gim/internal/server/message"
 	"google.golang.org/protobuf/proto"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"os/signal"
-	"sync"
-	"time"
 )
 
 func login() (string, error) {
