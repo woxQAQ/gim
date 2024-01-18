@@ -11,7 +11,6 @@ import (
 
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"github.com/segmentio/kafka-go"
 	"github.com/woxQAQ/gim/config"
 	"github.com/woxQAQ/gim/internal/protobuf/proto_pb"
@@ -47,42 +46,29 @@ func connKafka() (*sync.Map, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// init regexp for search for topic whose name begins with "TRANSFER"
 	pattern := "^TRANSFER"
 	re := regexp.MustCompile(pattern)
 
-	writermap := &sync.Map{}
+	writerMap := &sync.Map{}
 	for _, topic := range configs.Topics {
 		if re.MatchString(topic) {
-			writer := kafka.Writer{
+			writer := &kafka.Writer{
 				Addr:     kafka.TCP(configs.Address),
 				Topic:    topic,
 				Balancer: &kafka.LeastBytes{},
 			}
-			writermap.Store(topic, writer)
+			writerMap.Store(topic, writer)
 		}
 	}
-
-	return writermap, nil
+	return writerMap, nil
 }
-
-func transferId(addr string) string {
-	return addr
-}
-
 func NewTransferServer(network string, multicore bool) (*TsServer, error) {
-	// kafkaConn, err := connKafka()
-
-	// kafka config read
-	kafkaconfigdata, err := os.ReadFile(config.KafkaConfigPath)
+	kafkaWriters, err := connKafka()
 	if err != nil {
 		return nil, err
 	}
-	kafkaconfig := kafkaConfig{}
-	err = yaml.Unmarshal(kafkaconfigdata, &kafkaconfig)
-	if err != nil {
-		return nil, err
-	}
-
 	transferconfigdata, err := os.ReadFile(config.TransferConfigPath)
 	if err != nil {
 		return nil, err
@@ -96,7 +82,7 @@ func NewTransferServer(network string, multicore bool) (*TsServer, error) {
 	return &TsServer{
 		server.NewServer(network, multicore),
 		connMapInstance,
-		kafkaConn,
+		kafkaWriters,
 		&trConfig,
 	}, nil
 }
@@ -105,13 +91,21 @@ func (s *TsServer) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	logging.Infof("running server on %s with multi-core=%t\n",
 		fmt.Sprintf("%s://%s", s.Network, s.Addr), s.Multicore)
 	s.Eng = eng
-	s.Pool = goroutine.Default()
+
+	// init transfer server's client
+	// client of transfer server is used to connect directly with kafka
 	client, err := gnet.NewClient(&tsClient{
-		messagePoll: bufferPoolInstance,
+		messagePool: &sync.Pool{
+			New: func() interface{} {
+				return &bytes.Buffer{}
+			},
+		},
 	})
 	if err != nil {
 		panic(err)
 	}
+
+	// run transfer server client
 	err = client.Start()
 	if err != nil {
 		panic(err)

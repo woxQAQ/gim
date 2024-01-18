@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"github.com/woxQAQ/gim/internal/server/message"
@@ -57,14 +58,48 @@ func (s *GwServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	atomic.AddInt32(&s.Connected, 1)
 	// todo 设置websocket上下文
 	// c.SetContext(new(&wsCodec))
+	c.SetContext(new(wsCodec))
 	out = []byte("connection establishing...,\n")
 	action = gnet.None
 	return
 }
 
 func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	ws := c.Context().(*wsCodec)
 	logging.Infof("message arrived from client %s\n", c.RemoteAddr().String())
 
+	if ws.readBuffBytes(c) == gnet.Close {
+		return gnet.Close
+	}
+
+	ok, action := ws.upgrade(c)
+	if !ok {
+		return
+	}
+
+	if ws.buf.Len() <= 0 {
+		return
+	}
+	messages, err := ws.Decode(c)
+	if err != nil || messages == nil {
+		return
+	}
+
+	for _, message := range messages {
+		msgLen := len(message.Payload)
+		if msgLen > 128 {
+			logging.Infof("conn[%v] receive [op=%v] [msg=%v..., len=%d]",
+				c.RemoteAddr().String(), message.OpCode, string(message.Payload[:128]), len(message.Payload))
+		} else {
+			logging.Infof("conn[%v] receive [op=%v] [msg=%v, len=%d]",
+				c.RemoteAddr().String(), message.OpCode, string(message.Payload), len(message.Payload))
+		}
+		err := wsutil.WriteServerMessage(c, message.OpCode, message.Payload)
+		if err != nil {
+			logging.Infof("conn[%v] [err=%v]", c.RemoteAddr().String(), err.Error())
+			return gnet.Close
+		}
+	}
 	// 0. 获取缓冲区大小
 	buf := bufferPoolInstance.Get().([]byte)
 	buf = buf[:0]

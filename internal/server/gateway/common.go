@@ -1,14 +1,11 @@
 package gateway
 
 import (
+	"bytes"
 	"os"
 	"sync"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
-	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"github.com/woxQAQ/gim/config"
 	"github.com/woxQAQ/gim/internal/server"
 	"gopkg.in/yaml.v3"
@@ -22,10 +19,7 @@ var (
 	bufferPoolInstance *sync.Pool
 
 	// websocketUpgrade is used for upgrade a http conn to websocket
-	websocketUpgrade *websocket.Upgrader
-
-	// goroutinePool is a singleton of goroutine.Pool
-	goroutinePool *goroutine.Pool
+	//websocketUpgrade *websocket.Upgrader
 )
 
 // GwConfig is the config of a gateway server
@@ -66,7 +60,9 @@ type GwServer struct {
 
 	// WsEngine is a gin Engine of a gin-based
 	// websocket server
-	WsEngine *gin.Engine
+	//WsEngine *gin.Engine
+
+	// GwConfig is the configuration of gateway servers
 	*GwConfig
 }
 
@@ -74,18 +70,9 @@ func init() {
 	once.Do(func() {
 		bufferPoolInstance = &sync.Pool{
 			New: func() interface{} {
-				return make([]byte, 1024)
+				return bytes.Buffer{}
 			},
 		}
-		websocketUpgrade = &websocket.Upgrader{
-			WriteBufferSize: 1024,
-			ReadBufferSize:  1024,
-			WriteBufferPool: &sync.Pool{},
-		}
-		goroutinePool, _ = ants.NewPool(
-			1024,
-			ants.WithPreAlloc(true),
-			ants.WithNonblocking(true))
 	})
 }
 
@@ -93,9 +80,10 @@ func NewGatewayServer(network string, multicore bool, wsMgr *WebsocketConnManage
 	gwconfig := GwConfig{}
 
 	// get temp buf from bufferpool
-	buf := bufferPoolInstance.Get().([]byte)
+	buffer := bufferPoolInstance.Get().(bytes.Buffer)
 	// clear buf
-	buf = buf[:0]
+	buffer.Truncate(0)
+	buf := buffer.Bytes()
 
 	// read config
 	buf, err := os.ReadFile(config.GatewayConfigPath)
@@ -110,19 +98,12 @@ func NewGatewayServer(network string, multicore bool, wsMgr *WebsocketConnManage
 	}
 	bufferPoolInstance.Put(buf)
 
-	// creat http using gin,used for upgrading
-	// websocket connections
-	r := gin.Default()
-	r.POST("/ws", func(c *gin.Context) {
-		upgradeWebsocket(wsMgr, c)
-	})
-
 	return &GwServer{
 		server.NewServer(network, multicore),
 		clientMapInstance,
 		connMapInstance,
 		wsMgr,
-		r,
+		//r,
 		&gwconfig,
 	}
 }

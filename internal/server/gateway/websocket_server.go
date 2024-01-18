@@ -6,6 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/panjf2000/ants/v2"
+
+	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/woxQAQ/gim/internal/protobuf/proto_pb"
@@ -18,6 +22,8 @@ const (
 	writeWait  = 10 * time.Second
 	pongWait   = 60 * time.Second
 	pingPeriod = (pongWait * 9) / 10
+
+	defaultgoroutine = 1024
 )
 
 type wsSession struct {
@@ -47,10 +53,17 @@ type WebsocketConnManager struct {
 	// want to unregister to the Map
 	// using when a conn is going to leave
 	unregisterChan chan *wsSession
+
+	// goroutinePool is used to reuse goroutine
+	goroutinePool *goroutine.Pool
 }
 
 // NewWsMgr is used to create a new wsMgr
 func NewWsMgr() *WebsocketConnManager {
+	pool, err := ants.NewPool(defaultgoroutine, ants.WithPreAlloc(true), ants.WithNonblocking(true))
+	if err != nil {
+		panic(err)
+	}
 	return &WebsocketConnManager{
 		Map: websocketSessionMap{
 			sync.Map{},
@@ -58,6 +71,7 @@ func NewWsMgr() *WebsocketConnManager {
 		receivedChan:   make(chan []byte, 1024),
 		registerChan:   make(chan *wsSession),
 		unregisterChan: make(chan *wsSession),
+		goroutinePool:  pool,
 	}
 }
 
@@ -113,8 +127,8 @@ func upgradeWebsocket(wsMgr *WebsocketConnManager, c *gin.Context) {
 
 	// to avoid to many goroutine to be created,
 	// I use goroutinePool to schedule goroutines
-	goroutinePool.Submit(session.writeToConn)
-	goroutinePool.Submit(session.readFromChan)
+	wsMgr.goroutinePool.Submit(session.writeToConn)
+	wsMgr.goroutinePool.Submit(session.readFromChan)
 }
 
 // readFromChan used for reading message from client

@@ -1,20 +1,18 @@
 package config
 
 import (
-	"gopkg.in/ini.v1"
-	"gopkg.in/yaml.v3"
-	"gorm.io/gorm"
 	"os"
 	"time"
+
+	"gopkg.in/yaml.v3"
+	"gorm.io/gorm"
 )
 
 type Loader interface {
-	Load(name string)
+	Load(loc string)
 }
 
 var DB *gorm.DB
-
-var Cfg *ini.File
 
 var RunMode string
 
