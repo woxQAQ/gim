@@ -14,7 +14,8 @@ type server struct {
 }
 
 func TestWsClient(t *testing.T) {
-	_, _, _, err := ws.Dial(context.Background(), "ws://127.0.0.1:8888")
+	_, _, hs, err := ws.Dial(context.Background(), "ws://127.0.0.1:8888")
+	fmt.Println(hs)
 	if err != nil {
 		t.Error(err)
 	}

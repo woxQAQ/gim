@@ -3,13 +3,14 @@ package gateway
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
 	"io"
 )
+
+// TODO should I really write codec like this? read more about gobwas/ws
 
 // wsCodec is the websocket context to be set
 // when a gnet.conn arrived
@@ -19,23 +20,31 @@ type wsCodec struct {
 	wsMsgBuf wsMessageBuf
 }
 
+// wsMessageBuf is used to
 type wsMessageBuf struct {
 	firstHeader *ws.Header
 	curHeader   *ws.Header
 	cachedBuf   bytes.Buffer
 }
 
+// upgrade is used to upgrade a gnet.conn to a websocket conn.
+// to identify a conn which is upgrade or not, we use upgraded field
+// and a websocket conn sees not so different from a gnet conn--just
+// diff with a context
 func (wc *wsCodec) upgrade(c gnet.Conn) (ok bool, action gnet.Action) {
+	// if a wsCodec--a gnet conn's context, is upgrade, we return directly
 	if wc.upgraded {
 		ok = true
 		action = 0
+		return
 	}
 
+	// as a websocket server, it should receive msg from connection and
+	// write something back to it.We use codec's buf as reader and Conn as writer
 	buf := &wc.buf
 	reader := bytes.NewReader(buf.Bytes())
-	oldlen := reader.Len()
+	oldLen := reader.Len()
 	logging.Infof("upgrade\n")
-
 	hs, err := ws.Upgrade(struct {
 		io.Reader
 		io.Writer
@@ -43,7 +52,8 @@ func (wc *wsCodec) upgrade(c gnet.Conn) (ok bool, action gnet.Action) {
 		reader,
 		c,
 	})
-	skipN := oldlen - reader.Len()
+	// after reader--the codec's buf, upgrade with conn to be a websocket conn
+	skipN := oldLen - reader.Len()
 	if err != nil {
 		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 			return
@@ -54,15 +64,20 @@ func (wc *wsCodec) upgrade(c gnet.Conn) (ok bool, action gnet.Action) {
 		return
 	}
 	buf.Next(skipN)
+
 	logging.Infof("conn[%v] upgrade websocket complete! handshake: %v", c.RemoteAddr().String(), hs)
 	ok = true
 	wc.upgraded = true
 	return
 }
+
+// readBuffBytes read message from gnet's Conn to Codec's buf
 func (wc *wsCodec) readBuffBytes(c gnet.Conn) gnet.Action {
+	// read from c
+	// get the size of message for validate the read
 	size := c.InboundBuffered()
-	buf := bufferPoolInstance.Get().(bytes.Buffer)
-	read, err := c.Read(buf.Bytes())
+	buffer := bufferPoolInstance.Get().(bytes.Buffer)
+	read, err := c.Read(buffer.Bytes())
 	if err != nil {
 		logging.Infof("read err! %w", err)
 		return gnet.Close
@@ -71,7 +86,9 @@ func (wc *wsCodec) readBuffBytes(c gnet.Conn) gnet.Action {
 		logging.Infof("read err! read size %v != expected size %v", read, size)
 		return gnet.Close
 	}
-	wc.buf.Write(buf.Bytes())
+
+	// write buffer's data to Codec's buf
+	wc.buf.Write(buffer.Bytes())
 	return gnet.None
 }
 
@@ -79,6 +96,9 @@ func (wc *wsCodec) readWsMessage() (messages []wsutil.Message, err error) {
 	msbuf := &wc.wsMsgBuf
 	in := &wc.buf
 	for {
+		// reading header from wsCodec's buf
+		// after websocket connection established, we don't send the header any more.
+		// so the first time we read ws message, we need to read header into codec
 		if msbuf.curHeader == nil {
 			if in.Len() < ws.MinHeaderSize {
 				return
@@ -104,7 +124,9 @@ func (wc *wsCodec) readWsMessage() (messages []wsutil.Message, err error) {
 				in.Next(skipN)
 			}
 			msbuf.curHeader = &head
-			err := ws.WriteHeader(&msbuf.cachedBuf, head)
+
+			// write header into cachedBuf
+			err = ws.WriteHeader(&msbuf.cachedBuf, head)
 			if err != nil {
 				return nil, err
 			}
@@ -117,8 +139,7 @@ func (wc *wsCodec) readWsMessage() (messages []wsutil.Message, err error) {
 					return
 				}
 			} else { //数据不完整
-				fmt.Println(in.Len(), dataLen)
-				logging.Infof("incomplete data")
+				logging.Infof("incomplete data, expected length: %v and actual length: %v", dataLen, in.Len())
 				return
 			}
 		}

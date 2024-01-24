@@ -66,7 +66,7 @@ func (s *GwServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 
 func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	ws := c.Context().(*wsCodec)
-	logging.Infof("message arrived from client %s\n", c.RemoteAddr().String())
+	logging.Infof("msg arrived from client %s\n", c.RemoteAddr().String())
 
 	if ws.readBuffBytes(c) == gnet.Close {
 		return gnet.Close
@@ -85,16 +85,16 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return
 	}
 
-	for _, message := range messages {
-		msgLen := len(message.Payload)
+	for _, msg := range messages {
+		msgLen := len(msg.Payload)
 		if msgLen > 128 {
 			logging.Infof("conn[%v] receive [op=%v] [msg=%v..., len=%d]",
-				c.RemoteAddr().String(), message.OpCode, string(message.Payload[:128]), len(message.Payload))
+				c.RemoteAddr().String(), msg.OpCode, string(msg.Payload[:128]), len(msg.Payload))
 		} else {
 			logging.Infof("conn[%v] receive [op=%v] [msg=%v, len=%d]",
-				c.RemoteAddr().String(), message.OpCode, string(message.Payload), len(message.Payload))
+				c.RemoteAddr().String(), msg.OpCode, string(msg.Payload), len(msg.Payload))
 		}
-		err := wsutil.WriteServerMessage(c, message.OpCode, message.Payload)
+		err = wsutil.WriteServerMessage(c, msg.OpCode, msg.Payload)
 		if err != nil {
 			logging.Infof("conn[%v] [err=%v]", c.RemoteAddr().String(), err.Error())
 			return gnet.Close
@@ -110,7 +110,7 @@ func (s *GwServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return gnet.Close
 	}
 
-	//logging.Infof("message arrived: %s\n", string(buf))
+	//logging.Infof("msg arrived: %s\n", string(buf))
 	// 2. 反序列化客户端请求
 	req := s.RequestPool.Get().(*message.RequestBuffer)
 	if err = req.UnMarshalJSON(buf[:n]); err != nil {

@@ -61,9 +61,31 @@ type GwServer struct {
 	// WsEngine is a gin Engine of a gin-based
 	// websocket server
 	//WsEngine *gin.Engine
+	//*ws.Upgrader
 
 	// GwConfig is the configuration of gateway servers
 	*GwConfig
+}
+
+func (c *GwConfig) Load(loc string) {
+	// get temp buf from bufferpool
+	buffer := bufferPoolInstance.Get().(bytes.Buffer)
+	// clear buf
+	buffer.Truncate(0)
+	buf := buffer.Bytes()
+
+	// read config
+	buf, err := os.ReadFile(config.GatewayConfigPath)
+	if err != nil {
+		logging.Errorf("NewGatewayServer Error: os.ReadFile Error: %v\n", err.Error())
+		panic(err)
+	}
+	err = yaml.Unmarshal(buf, c)
+	if err != nil {
+		logging.Errorf("NewGatewayServer Error: yaml.Unmarshal Error: %v\n", err.Error())
+		panic(err)
+	}
+	bufferPoolInstance.Put(buf)
 }
 
 func init() {
@@ -77,33 +99,13 @@ func init() {
 }
 
 func NewGatewayServer(network string, multicore bool, wsMgr *WebsocketConnManager) *GwServer {
-	gwconfig := GwConfig{}
-
-	// get temp buf from bufferpool
-	buffer := bufferPoolInstance.Get().(bytes.Buffer)
-	// clear buf
-	buffer.Truncate(0)
-	buf := buffer.Bytes()
-
-	// read config
-	buf, err := os.ReadFile(config.GatewayConfigPath)
-	if err != nil {
-		logging.Errorf("NewGatewayServer Error: os.ReadFile Error: %v\n", err.Error())
-		panic(err)
-	}
-	err = yaml.Unmarshal(buf, gwconfig)
-	if err != nil {
-		logging.Errorf("NewGatewayServer Error: yaml.Unmarshal Error: %v\n", err.Error())
-		panic(err)
-	}
-	bufferPoolInstance.Put(buf)
-
+	c := GwConfig{}
+	c.Load(config.GatewayConfigPath)
 	return &GwServer{
 		server.NewServer(network, multicore),
 		clientMapInstance,
 		connMapInstance,
 		wsMgr,
-		//r,
-		&gwconfig,
+		&c,
 	}
 }

@@ -13,10 +13,10 @@ import (
 // - token
 // - conn
 // - token销毁时间
-func authHandler(buf *message.RequestBuffer) (time.Time, error) {
+func authHandler(token string, userId string) (time.Time, error) {
 	// 编码数据
-	token := buf.GetToken()
-	userId := buf.GetUserId()
+	//token := buf.GetToken()
+	//userId := buf.GetUserId()
 
 	client := &fasthttp.Client{}
 	req := fasthttp.AcquireRequest()

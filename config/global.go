@@ -9,7 +9,7 @@ import (
 )
 
 type Loader interface {
-	Load(loc string)
+	Load(loc string) any
 }
 
 var DB *gorm.DB
