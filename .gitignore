@@ -11,3 +11,5 @@
 /dataSources.local.xml
 server.crt
 server.key
+
+__debug_bin*

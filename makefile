@@ -1,0 +1,18 @@
+.phony: module
+module: 
+	go mod tidy -compat=1.22
+	go mod verify
+
+.phony: fmt
+fmt:
+	go fmt 
+
+.phony: lint
+lint: module
+	@ echo -e "\033[1;32mgolangci-lint...\033[0m"
+	golangci-lint run
+
+.phony: install-hooks
+install-hooks:
+	@ echo -e "\033[1;32mInstalling git hooks...\033[0m"
+	chmod +x .git/hooks/pre-commit
