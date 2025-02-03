@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// WebSocketConn 实现LongConn接口的WebSocket连接
+// WebSocketConn 实现LongConn接口的WebSocket连接.
 type WebSocketConn struct {
 	id         string
 	platformID int32
@@ -147,7 +147,13 @@ func (w *WebSocketConn) setConnectionState(state ConnectionState) {
 
 // readPump 持续读取WebSocket消息
 func (w *WebSocketConn) readPump() {
-	defer w.Disconnect()
+	defer func() {
+		if err := w.Disconnect(); err != nil {
+			if w.onError != nil {
+				w.onError(err)
+			}
+		}
+	}()
 
 	// 启动心跳检测
 	go w.heartbeatChecker()
@@ -187,7 +193,11 @@ func (w *WebSocketConn) heartbeatChecker() {
 				if w.onError != nil {
 					w.onError(err)
 				}
-				w.Disconnect()
+				if err := w.Disconnect(); err != nil {
+					if w.onError != nil {
+						w.onError(err)
+					}
+				}
 				return
 			}
 
@@ -196,7 +206,11 @@ func (w *WebSocketConn) heartbeatChecker() {
 				if w.onError != nil {
 					w.onError(errors.New("heartbeat timeout"))
 				}
-				w.Disconnect()
+				if err := w.Disconnect(); err != nil {
+					if w.onError != nil {
+						w.onError(err)
+					}
+				}
 				return
 			}
 		}

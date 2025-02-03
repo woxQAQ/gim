@@ -12,9 +12,9 @@ import (
 
 var _ Gateway = &WSGateway{}
 
-// Gateway 定义消息网关接口
+// Gateway 定义消息网关接口.
 type Gateway interface {
-	// Start 启动网关服务
+	// Start 启动网关服务.
 	Start(ctx context.Context) error
 
 	// Stop 停止网关服务
@@ -33,7 +33,7 @@ type Gateway interface {
 	IsUserOnline(userID string) bool
 }
 
-// WSGateway 实现Gateway接口的WebSocket网关
+// WSGateway 实现Gateway接口的WebSocket网关.
 type WSGateway struct {
 	// WebSocket处理器
 	wsHandler *WebSocketHandler
@@ -55,17 +55,17 @@ type WSGateway struct {
 	closedChan chan struct{}
 }
 
-// Option 定义WSGateway的配置选项函数类型
+// Option 定义WSGateway的配置选项函数类型.
 type Option func(*WSGateway)
 
-// WithLogger 设置WSGateway的logger
+// WithLogger 设置WSGateway的logger.
 func WithLogger(l logger.Logger) Option {
 	return func(g *WSGateway) {
 		g.logger = l
 	}
 }
 
-// NewWSGateway 创建新的WebSocket网关实例
+// NewWSGateway 创建新的WebSocket网关实例.
 func NewWSGateway(opts ...Option) (*WSGateway, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	g := &WSGateway{
@@ -103,13 +103,13 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 	return g, nil
 }
 
-// Start 实现Gateway接口的Start方法
+// Start 实现Gateway接口的Start方法.
 func (g *WSGateway) Start(ctx context.Context) error {
 	g.logger.Info("Starting WebSocket gateway service")
 	return nil
 }
 
-// Stop 实现Gateway接口的Stop方法
+// Stop 实现Gateway接口的Stop方法.
 func (g *WSGateway) Stop() error {
 	g.closeOnce.Do(func() {
 		// 取消上下文
@@ -122,19 +122,19 @@ func (g *WSGateway) Stop() error {
 	return nil
 }
 
-// Broadcast 实现Gateway接口的Broadcast方法
+// Broadcast 实现Gateway接口的Broadcast方法.
 func (g *WSGateway) Broadcast(msg Message) error {
 	g.logger.Info("Broadcasting message to all online users")
 	return g.userManager.BroadcastMessage(msg.Type, msg.Payload)
 }
 
-// SendToUser 实现Gateway接口的SendToUser方法
+// SendToUser 实现Gateway接口的SendToUser方法.
 func (g *WSGateway) SendToUser(userID string, msg Message) error {
 	g.logger.Info("Sending message to user", logger.String("user_id", userID))
 	return g.userManager.SendMessage(userID, msg.Type, msg.Payload)
 }
 
-// GetOnlineCount 实现Gateway接口的GetOnlineCount方法
+// GetOnlineCount 实现Gateway接口的GetOnlineCount方法.
 func (g *WSGateway) GetOnlineCount() int {
 	count := 0
 	// TODO: 实现获取在线用户数量的逻辑
@@ -142,7 +142,7 @@ func (g *WSGateway) GetOnlineCount() int {
 	return count
 }
 
-// IsUserOnline 实现Gateway接口的IsUserOnline方法
+// IsUserOnline 实现Gateway接口的IsUserOnline方法.
 func (g *WSGateway) IsUserOnline(userID string) bool {
 	state, err := g.userManager.GetUserState(userID)
 	if err != nil {
@@ -154,7 +154,7 @@ func (g *WSGateway) IsUserOnline(userID string) bool {
 	return isOnline
 }
 
-// HandleNewConnection 处理新的WebSocket连接
+// HandleNewConnection 处理新的WebSocket连接.
 func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) {
 	// 获取用户ID
 	userID := r.URL.Query().Get("user_id")

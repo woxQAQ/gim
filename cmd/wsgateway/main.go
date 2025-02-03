@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/woxQAQ/gim/internal/wsgateway"
 	"github.com/woxQAQ/gim/pkg/logger"
@@ -54,6 +55,7 @@ func main() {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gateway.HandleNewConnection(w, r)
 		}),
+		ReadHeaderTimeout: 10 * time.Second, // 防止 Slowloris 攻击
 	}
 
 	// 启动网关服务
