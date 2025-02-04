@@ -3,10 +3,13 @@ package wsgateway
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/woxQAQ/gim/internal/wsgateway/codec"
+	"github.com/woxQAQ/gim/internal/wsgateway/types"
 )
 
 // WebSocketConn 实现LongConn接口的WebSocket连接.
@@ -14,14 +17,18 @@ type WebSocketConn struct {
 	id         string
 	platformID int32
 	conn       *websocket.Conn
-	state      ConnectionState
+	state      types.ConnectionState
 	stateMu    sync.RWMutex
 
 	lastPingTime time.Time
 	pingMu       sync.RWMutex
 
+	// 消息处理
+	compressor codec.Compressor
+	encoder    codec.Encoder
+
 	// 回调函数
-	onMessage    func(Message)
+	onMessage    func(types.Message)
 	onDisconnect func(error)
 	onError      func(error)
 
@@ -36,24 +43,26 @@ func NewWebSocketConn(conn *websocket.Conn, id string, platformID int32) *WebSoc
 		id:           id,
 		platformID:   platformID,
 		conn:         conn,
-		state:        Disconnected,
+		state:        types.Disconnected,
 		lastPingTime: time.Now(),
 		closeChan:    make(chan struct{}),
+		onError:      func(err error) { fmt.Printf("WebSocket连接错误 [ID: %s]: %v\n", id, err) },
+		onDisconnect: func(err error) { fmt.Printf("WebSocket连接断开 [ID: %s]: %v\n", id, err) },
 	}
 }
 
 // Connect 实现LongConn接口的Connect方法
 func (w *WebSocketConn) Connect(ctx context.Context) error {
 	// WebSocket连接已经在HTTP升级时建立，这里只需要启动消息读取循环
-	w.setConnectionState(Connected)
+	w.setConnectionState(types.Connected)
 	go w.readPump()
 	return nil
 }
 
 // Disconnect 实现LongConn接口的Disconnect方法
-func (w *WebSocketConn) Disconnect() error {
+func (w *WebSocketConn) Disconnect(err error) error {
 	w.closeOnce.Do(func() {
-		w.setConnectionState(Closing)
+		w.setConnectionState(types.Closing)
 		close(w.closeChan)
 
 		// 关闭WebSocket连接
@@ -61,37 +70,45 @@ func (w *WebSocketConn) Disconnect() error {
 			w.conn.Close()
 		}
 
-		w.setConnectionState(Disconnected)
+		w.setConnectionState(types.Disconnected)
 
 		// 触发断开连接回调
 		if w.onDisconnect != nil {
-			w.onDisconnect(nil)
+			w.onDisconnect(err)
 		}
 	})
 	return nil
 }
 
 // Send 实现LongConn接口的Send方法
-func (w *WebSocketConn) Send(msg Message) error {
-	if w.State() != Connected {
+func (w *WebSocketConn) Send(msg types.Message) error {
+	if w.State() != types.Connected {
 		return errors.New("connection is not established")
 	}
 
-	return w.conn.WriteMessage(msg.Type, msg.Payload)
+	return w.conn.WriteMessage(msg.Header.Type.MapMessageType(), msg.Payload)
 }
 
 // Receive 实现LongConn接口的Receive方法
-func (w *WebSocketConn) Receive() (Message, error) {
+func (w *WebSocketConn) Receive() (types.Message, error) {
 	msgType, data, err := w.conn.ReadMessage()
 	if err != nil {
-		return Message{}, err
+		return types.Message{}, err
 	}
 
-	return Message{Type: msgType, Payload: data}, nil
+	return types.Message{
+		Header: types.MessageHeader{
+			Type:      types.MessageType(msgType),
+			Timestamp: time.Now(),
+			From:      w.id,
+			Platform:  w.platformID,
+		},
+		Payload: data,
+	}, nil
 }
 
 // State 实现LongConn接口的State方法
-func (w *WebSocketConn) State() ConnectionState {
+func (w *WebSocketConn) State() types.ConnectionState {
 	w.stateMu.RLock()
 	defer w.stateMu.RUnlock()
 	return w.state
@@ -122,7 +139,7 @@ func (w *WebSocketConn) PlatformID() int32 {
 }
 
 // OnMessage 实现LongConn接口的OnMessage方法
-func (w *WebSocketConn) OnMessage(handler func(Message)) {
+func (w *WebSocketConn) OnMessage(handler func(types.Message)) {
 	w.onMessage = handler
 }
 
@@ -139,7 +156,7 @@ func (w *WebSocketConn) OnError(handler func(error)) {
 // 内部方法
 
 // setConnectionState 设置连接状态
-func (w *WebSocketConn) setConnectionState(state ConnectionState) {
+func (w *WebSocketConn) setConnectionState(state types.ConnectionState) {
 	w.stateMu.Lock()
 	defer w.stateMu.Unlock()
 	w.state = state
@@ -148,7 +165,7 @@ func (w *WebSocketConn) setConnectionState(state ConnectionState) {
 // readPump 持续读取WebSocket消息
 func (w *WebSocketConn) readPump() {
 	defer func() {
-		if err := w.Disconnect(); err != nil {
+		if err := w.Disconnect(nil); err != nil {
 			if w.onError != nil {
 				w.onError(err)
 			}
@@ -183,34 +200,29 @@ func (w *WebSocketConn) heartbeatChecker() {
 	ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
 	defer ticker.Stop()
 
+	var handleHeartbeatError = func(err error) {
+		if w.onError != nil {
+			w.onError(err)
+		}
+		_ = w.Disconnect(err) // 忽略Disconnect可能返回的错误，因为连接已经出现问题
+	}
+
 	for {
 		select {
 		case <-w.closeChan:
 			return
 		case <-ticker.C:
 			// 发送ping消息
-			if err := w.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
-				if w.onError != nil {
-					w.onError(err)
-				}
-				if err := w.Disconnect(); err != nil {
-					if w.onError != nil {
-						w.onError(err)
-					}
-				}
+			if err := w.conn.WriteControl(websocket.PingMessage,
+				[]byte("\n"), time.Now().Add(10*time.Second),
+			); err != nil {
+				handleHeartbeatError(err)
 				return
 			}
 
 			// 检查最后一次心跳时间
 			if time.Since(w.LastPingTime()) > 60*time.Second {
-				if w.onError != nil {
-					w.onError(errors.New("heartbeat timeout"))
-				}
-				if err := w.Disconnect(); err != nil {
-					if w.onError != nil {
-						w.onError(err)
-					}
-				}
+				handleHeartbeatError(errors.New("heartbeat timeout"))
 				return
 			}
 		}

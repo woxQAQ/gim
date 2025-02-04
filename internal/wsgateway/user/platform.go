@@ -3,7 +3,7 @@ package user
 import (
 	"sync"
 
-	"github.com/woxQAQ/gim/pkg/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/types"
 )
 
 // UserPlatform 管理单个用户的多平台连接.

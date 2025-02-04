@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/woxQAQ/gim/pkg/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/types"
 )
 
 // State 定义用户在各平台的在线状态.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/woxQAQ/gim/internal/wsgateway"
 	"github.com/woxQAQ/gim/pkg/logger"
+	"github.com/woxQAQ/gim/pkg/snowflake"
 )
 
 var (
@@ -31,12 +32,18 @@ func main() {
 	flag.Parse()
 
 	// 初始化日志系统
-	l, err := logger.NewLogger("ws_gateway", &logger.Config{
+	l, err := logger.NewLogger(logger.DomainWSGateway, &logger.Config{
 		Level:    logLevel,
 		FilePath: logFile,
 	})
 	if err != nil {
 		fmt.Printf("初始化日志系统失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 初始化消息ID生成器
+	if err := snowflake.InitGenerator(1); err != nil {
+		l.Error("初始化消息ID生成器失败", logger.Error(err))
 		os.Exit(1)
 	}
 

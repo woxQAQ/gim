@@ -5,12 +5,6 @@ import (
 	"time"
 )
 
-// Message 定义消息的基本结构。
-type Message struct {
-	Type    int    // 消息类型
-	Payload []byte // 消息内容
-}
-
 // ConnectionState 定义连接状态。
 type ConnectionState int
 
@@ -27,7 +21,7 @@ type LongConn interface {
 	Connect(ctx context.Context) error
 
 	// Disconnect 主动断开连接
-	Disconnect() error
+	Disconnect(err error) error
 
 	// Send 发送消息
 	Send(msg Message) error
