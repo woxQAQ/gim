@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/internal/wsgateway/types"
+	"github.com/woxQAQ/gim/pkg/workerpool"
 )
 
 // WebSocketConn 实现LongConn接口的WebSocket连接.
@@ -55,7 +56,8 @@ func NewWebSocketConn(conn *websocket.Conn, id string, platformID int32) *WebSoc
 func (w *WebSocketConn) Connect(ctx context.Context) error {
 	// WebSocket连接已经在HTTP升级时建立，这里只需要启动消息读取循环
 	w.setConnectionState(types.Connected)
-	go w.readPump()
+	workerpool.GetInstance().Start()
+	workerpool.GetInstance().Submit(w.readPump)
 	return nil
 }
 
@@ -173,7 +175,7 @@ func (w *WebSocketConn) readPump() {
 	}()
 
 	// 启动心跳检测
-	go w.heartbeatChecker()
+	workerpool.GetInstance().Submit(w.heartbeatChecker)
 
 	for {
 		select {

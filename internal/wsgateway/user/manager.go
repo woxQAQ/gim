@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/woxQAQ/gim/internal/wsgateway/types"
+	"github.com/woxQAQ/gim/pkg/workerpool"
 )
 
 // IUserManager 定义用户管理器的接口.
@@ -46,17 +47,17 @@ type Manager struct {
 
 // Start 实现 IUserManager 接口.
 func (um *Manager) Start(ctx context.Context) error {
-	// 目前用户管理器不需要特殊的启动逻辑
-	// 如果将来需要添加后台任务或资源初始化，可以在这里实现
 	return nil
 }
 
 // NewUserManager 创建新的用户管理器实例.
 func NewUserManager() *Manager {
-	return &Manager{
+	m := &Manager{
 		users:     make(map[string]*Platform),
 		observers: make([]StateObserver, 0),
 	}
+
+	return m
 }
 
 // AddObserver 添加状态观察者.
@@ -84,7 +85,11 @@ func (um *Manager) notifyStateChange(userID string, platformID int32, oldState, 
 	defer um.mutex.RUnlock()
 	timestamp := time.Now()
 	for _, observer := range um.observers {
-		go observer.OnUserStateChange(userID, platformID, oldState, newState, timestamp)
+		// 使用协程池处理观察者通知
+		observer := observer // 创建副本以避免闭包问题
+		workerpool.GetInstance().Submit(func() {
+			observer.OnUserStateChange(userID, platformID, oldState, newState, timestamp)
+		})
 	}
 }
 
