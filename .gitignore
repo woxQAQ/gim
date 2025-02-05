@@ -11,5 +11,6 @@
 /dataSources.local.xml
 server.crt
 server.key
+gim.db
 
 __debug_bin*

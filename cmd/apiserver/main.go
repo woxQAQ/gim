@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/go-fuego/fuego"
+	"github.com/woxQAQ/gim/internal/apiserver/config"
 	"github.com/woxQAQ/gim/internal/apiserver/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 	"github.com/woxQAQ/gim/pkg/middleware"
@@ -51,13 +52,21 @@ func main() {
 	}
 
 	// 创建Fuego服务器实例
-	server := fuego.NewServer(fuego.WithAddr(addr), fuego.WithoutLogger())
+	server := fuego.NewServer(fuego.WithAddr(addr),
+		fuego.WithoutLogger(),
+		fuego.WithOpenAPIConfig(fuego.OpenAPIConfig{
+			JsonFilePath:     "../../api/openapi.json",
+			PrettyFormatJson: true,
+		}),
+	)
 
 	// 设置全局中间件
 	fuego.Use(server, middleware.Recovery(l))
 
 	// 设置日志中间件
 	fuego.Use(server, middleware.Logger(l))
+
+	config.Register(server, db.GetDB())
 
 	// 启动服务器
 	go func() {

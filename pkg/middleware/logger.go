@@ -43,7 +43,6 @@ func Logger(l logger.Logger) func(next http.Handler) http.Handler {
 				logger.String("path", r.URL.Path),
 				logger.String("query", queryParams),
 				logger.String("remote_addr", r.RemoteAddr),
-				logger.String("user_agent", r.UserAgent()),
 				logger.String("content_type", r.Header.Get("Content-Type")),
 				logger.String("referer", r.Referer()),
 				logger.Int("status", rw.statusCode),
