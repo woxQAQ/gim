@@ -3,6 +3,12 @@ module:
 	go mod tidy -compat=1.22
 	go mod verify
 
+GO_FILES := $(shell git ls-files | grep "\.go$$")
+
+.phony: imports
+imports:
+	goimports -local github.com/woxQAQ/gim -w $(GO_FILES)
+
 .phony: fmt
 fmt:
 	go fmt ./... 

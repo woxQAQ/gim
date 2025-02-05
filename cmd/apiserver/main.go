@@ -9,11 +9,12 @@ import (
 	"syscall"
 
 	"github.com/go-fuego/fuego"
+	"go.uber.org/zap"
+
 	"github.com/woxQAQ/gim/internal/apiserver/config"
 	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 	"github.com/woxQAQ/gim/pkg/middleware"
-	"go.uber.org/zap"
 )
 
 var (

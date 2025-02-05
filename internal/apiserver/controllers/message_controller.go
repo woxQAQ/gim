@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/go-fuego/fuego"
+
 	"github.com/woxQAQ/gim/internal/apiserver/services"
 	"github.com/woxQAQ/gim/internal/apiserver/types/request"
 	"github.com/woxQAQ/gim/internal/apiserver/types/response"

@@ -2,10 +2,11 @@ package config
 
 import (
 	"github.com/go-fuego/fuego"
+	"gorm.io/gorm"
+
 	"github.com/woxQAQ/gim/internal/apiserver/controllers"
 	"github.com/woxQAQ/gim/internal/apiserver/services"
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
-	"gorm.io/gorm"
 )
 
 func Register(sv *fuego.Server, db *gorm.DB) {

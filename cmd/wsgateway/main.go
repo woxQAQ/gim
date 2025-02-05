@@ -10,11 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/woxQAQ/gim/internal/wsgateway"
 	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 	"github.com/woxQAQ/gim/pkg/snowflake"
-	"go.uber.org/zap"
 )
 
 var (

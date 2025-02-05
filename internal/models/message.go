@@ -3,9 +3,10 @@ package models
 import (
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/woxQAQ/gim/internal/apiserver/types/response"
 	"github.com/woxQAQ/gim/internal/types"
-	"gorm.io/gorm"
 )
 
 // MessageStatus 消息状态
