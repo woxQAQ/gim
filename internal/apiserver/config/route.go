@@ -12,5 +12,9 @@ func Register(sv *fuego.Server, db *gorm.DB) {
 	ustore := stores.NewUserStore(db)
 	us := services.NewUserService(ustore)
 	uc := controllers.NewUserController(us)
-	uc.Route(sv)
+	apiv1 := fuego.Group(sv, "/api/v1",
+		fuego.OptionDescription("API v1"),
+		fuego.OptionHeader("Authentication", "Bearer Token", fuego.ParamRequired()),
+	)
+	uc.Route(apiv1)
 }

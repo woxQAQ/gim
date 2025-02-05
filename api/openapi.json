@@ -61,6 +61,10 @@
 						"type": "string"
 					}
 				},
+				"required": [
+					"username",
+					"password"
+				],
 				"type": "object"
 			},
 			"RegisterRequest": {
@@ -76,10 +80,44 @@
 						"type": "string"
 					}
 				},
+				"required": [
+					"username",
+					"password"
+				],
 				"type": "object"
 			},
-			"User": {
-				"description": "User schema"
+			"UserResponse": {
+				"description": "UserResponse schema",
+				"properties": {
+					"avatar": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"gender": {
+						"type": "string"
+					},
+					"id": {
+						"type": "string"
+					},
+					"nickname": {
+						"type": "string"
+					},
+					"phone": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					}
+				},
+				"type": "object"
 			},
 			"unknown-interface": {
 				"description": "unknown-interface schema"
@@ -93,11 +131,20 @@
 	},
 	"openapi": "3.1.0",
 	"paths": {
-		"/users/login": {
+		"/api/v1/users/login": {
 			"post": {
 				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Login`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n用户登录",
-				"operationId": "POST_/users/login",
+				"operationId": "POST_/api/v1/users/login",
 				"parameters": [
+					{
+						"description": "Bearer Token",
+						"in": "header",
+						"name": "Authentication",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
 					{
 						"in": "header",
 						"name": "Accept",
@@ -122,12 +169,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserResponse"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserResponse"
 								}
 							}
 						},
@@ -169,15 +216,24 @@
 				},
 				"summary": "login",
 				"tags": [
-					"users"
+					"user"
 				]
 			}
 		},
-		"/users/register": {
+		"/api/v1/users/register": {
 			"post": {
 				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Register`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n注册用户",
-				"operationId": "POST_/users/register",
+				"operationId": "POST_/api/v1/users/register",
 				"parameters": [
+					{
+						"description": "Bearer Token",
+						"in": "header",
+						"name": "Authentication",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
 					{
 						"in": "header",
 						"name": "Accept",
@@ -202,12 +258,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserResponse"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserResponse"
 								}
 							}
 						},
@@ -249,15 +305,24 @@
 				},
 				"summary": "register",
 				"tags": [
-					"users"
+					"user"
 				]
 			}
 		},
-		"/users/{userId}": {
+		"/api/v1/users/{userId}": {
 			"get": {
 				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).GetUserInfo`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n获取用户信息",
-				"operationId": "GET_/users/:userId",
+				"operationId": "GET_/api/v1/users/:userId",
 				"parameters": [
+					{
+						"description": "Bearer Token",
+						"in": "header",
+						"name": "Authentication",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
 					{
 						"in": "header",
 						"name": "Accept",
@@ -279,12 +344,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserResponse"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserResponse"
 								}
 							}
 						},
@@ -326,7 +391,7 @@
 				},
 				"summary": "get user info",
 				"tags": [
-					"users"
+					"user"
 				]
 			}
 		}
@@ -339,7 +404,7 @@
 	],
 	"tags": [
 		{
-			"name": "users"
+			"name": "user"
 		}
 	]
 }

@@ -58,6 +58,7 @@ func main() {
 			JsonFilePath:     "../../api/openapi.json",
 			PrettyFormatJson: true,
 		}),
+		fuego.WithoutAutoGroupTags(),
 	)
 
 	// 设置全局中间件

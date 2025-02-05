@@ -72,8 +72,15 @@ func NewLogger(domain Domain, cfg *Config) (Logger, error) {
 	var cores []zapcore.Core
 
 	// 添加控制台输出.
+	// 自定义日志编码配置
+	encConfig := zap.NewDevelopmentEncoderConfig()
+	encConfig.LevelKey = "level"
+	encConfig.TimeKey = "timestamp"
+	encConfig.CallerKey = "caller"
+	encConfig.MessageKey = "message"
+
 	consoleCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(zap.NewDevelopmentEncoderConfig()),
+		zapcore.NewJSONEncoder(encConfig),
 		zapcore.AddSync(os.Stdout),
 		zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 			return lvl >= zapcore.DebugLevel
@@ -89,8 +96,9 @@ func NewLogger(domain Domain, cfg *Config) (Logger, error) {
 		}
 
 		// 配置文件输出.
+		// 使用相同的编码配置
 		fileCore := zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.NewJSONEncoder(encConfig),
 			zapcore.AddSync(&lumberjack.Logger{
 				Filename: cfg.FilePath,
 				MaxSize:  100, // 默认100MB

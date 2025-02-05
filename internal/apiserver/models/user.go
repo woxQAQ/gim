@@ -5,13 +5,14 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/woxQAQ/gim/internal/apiserver/types/response"
 	"github.com/woxQAQ/gim/pkg/auth"
 )
 
 // User 用户模型
 type User struct {
 	ID        string    `gorm:"primaryKey;type:text"`
-	Username  string    `gorm:"type:text;not null;unique"`
+	Username  string    `gorm:"type:text;not null"`
 	Password  string    `gorm:"type:text;not null"`
 	Nickname  string    `gorm:"type:text;default:''"`
 	Avatar    string    `gorm:"type:text;default:''"`
@@ -45,4 +46,38 @@ func (u *User) BeforeSave(tx *gorm.DB) error {
 // ValidatePassword 验证密码是否正确
 func (u *User) ValidatePassword(password string) bool {
 	return auth.ValidatePassword(password, u.Password)
+}
+
+func (u *User) ToResponse() *response.UserResponse {
+	status := func() string {
+		switch u.Status {
+		case 0:
+			return "disable"
+		case 1:
+			return "enable"
+		}
+		return ""
+	}
+	gender := func() string {
+		switch u.Gender {
+		case 0:
+			return "unknown"
+		case 1:
+			return "male"
+		case 2:
+			return "female"
+		}
+		return ""
+	}
+	return &response.UserResponse{
+		ID:       u.ID,
+		Username: u.Username,
+		Nickname: u.Nickname,
+		Avatar:   u.Avatar,
+		Gender:   gender(),
+		Phone:    u.Phone,
+		Email:    u.Email,
+		Status:   status(),
+		Bio:      u.Bio,
+	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/woxQAQ/gim/internal/apiserver/models"
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
+	"github.com/woxQAQ/gim/internal/apiserver/types/response"
 	"github.com/woxQAQ/gim/pkg/snowflake"
 )
 
@@ -51,7 +52,7 @@ func (s *UserService) Register(user *models.User) error {
 }
 
 // Login 处理用户登录的业务逻辑
-func (s *UserService) Login(username, password string) (*models.User, error) {
+func (s *UserService) Login(username, password string) (*response.UserResponse, error) {
 	// 根据用户名获取用户
 	user, err := s.userStore.GetUserByUsername(username)
 	if err != nil {
@@ -69,7 +70,7 @@ func (s *UserService) Login(username, password string) (*models.User, error) {
 		return nil, err
 	}
 
-	return user, nil
+	return user.ToResponse(), nil
 }
 
 // GetUserByID 获取用户信息的业务逻辑

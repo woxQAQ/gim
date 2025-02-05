@@ -5,6 +5,7 @@ import (
 	"github.com/woxQAQ/gim/internal/apiserver/models"
 	"github.com/woxQAQ/gim/internal/apiserver/services"
 	"github.com/woxQAQ/gim/internal/apiserver/types/request"
+	"github.com/woxQAQ/gim/internal/apiserver/types/response"
 )
 
 // UserController 处理用户相关的HTTP请求
@@ -13,7 +14,10 @@ type UserController struct {
 }
 
 func (c *UserController) Route(sv *fuego.Server) {
-	g := fuego.Group(sv, "/users", fuego.OptionDescription("用户相关接口"))
+	g := fuego.Group(sv, "/users",
+		fuego.OptionDescription("用户相关接口"),
+		fuego.OptionTags("user"),
+	)
 	fuego.Post(g, "/register", c.Register, fuego.OptionDescription("注册用户"))
 	fuego.Post(g, "/login", c.Login, fuego.OptionDescription("用户登录"))
 	fuego.Get(g, "/{userId}", c.GetUserInfo, fuego.OptionDescription("获取用户信息"))
@@ -27,7 +31,7 @@ func NewUserController(userService *services.UserService) *UserController {
 }
 
 // Register 处理用户注册请求
-func (uc *UserController) Register(c fuego.ContextWithBody[request.RegisterRequest]) (*models.User, error) {
+func (uc *UserController) Register(c fuego.ContextWithBody[request.RegisterRequest]) (*response.UserResponse, error) {
 	req, err := c.Body()
 	if err != nil {
 		return nil, err
@@ -45,12 +49,11 @@ func (uc *UserController) Register(c fuego.ContextWithBody[request.RegisterReque
 	if err != nil {
 		return nil, err
 	}
-
-	return user, nil
+	return user.ToResponse(), nil
 }
 
 // Login 处理用户登录请求
-func (uc *UserController) Login(c fuego.ContextWithBody[request.LoginRequest]) (*models.User, error) {
+func (uc *UserController) Login(c fuego.ContextWithBody[request.LoginRequest]) (*response.UserResponse, error) {
 	req, err := c.Body()
 	if err != nil {
 		return nil, err
@@ -66,7 +69,7 @@ func (uc *UserController) Login(c fuego.ContextWithBody[request.LoginRequest]) (
 }
 
 // GetUserInfo 获取用户信息
-func (uc *UserController) GetUserInfo(c fuego.ContextNoBody) (*models.User, error) {
+func (uc *UserController) GetUserInfo(c fuego.ContextNoBody) (*response.UserResponse, error) {
 	// 从上下文中获取用户ID
 	userID := c.PathParam("userId")
 	if userID == "" {
@@ -82,5 +85,5 @@ func (uc *UserController) GetUserInfo(c fuego.ContextNoBody) (*models.User, erro
 		return nil, err
 	}
 
-	return user, nil
+	return user.ToResponse(), nil
 }
