@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/woxQAQ/gim/internal/wsgateway"
+	"github.com/woxQAQ/gim/internal/wsgateway/console"
 	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 	"github.com/woxQAQ/gim/pkg/snowflake"
@@ -94,6 +95,13 @@ func main() {
 		}
 	}()
 
+	console := console.NewConsole(gateway, l)
+
+	// 在新的goroutine中启动控制台
+	go func() {
+		console.Start()
+	}()
+
 	// 等待中断信号
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -116,6 +124,8 @@ func main() {
 	if err := db.Close(); err != nil {
 		l.Error("关闭数据库连接失败", logger.Error(err))
 	}
+
+	console.Stop()
 
 	l.Info("服务已完全关闭")
 }
