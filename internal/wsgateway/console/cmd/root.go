@@ -7,6 +7,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
+
 	"github.com/woxQAQ/gim/internal/wsgateway"
 )
 
