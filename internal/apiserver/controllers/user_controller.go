@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"github.com/go-fuego/fuego"
-	"github.com/woxQAQ/gim/internal/apiserver/models"
 	"github.com/woxQAQ/gim/internal/apiserver/services"
 	"github.com/woxQAQ/gim/internal/apiserver/types/request"
 	"github.com/woxQAQ/gim/internal/apiserver/types/response"
+	"github.com/woxQAQ/gim/internal/models"
 )
 
 // UserController 处理用户相关的HTTP请求

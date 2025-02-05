@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/woxQAQ/gim/internal/apiserver/stores"
+	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/internal/wsgateway/handler"
-	"github.com/woxQAQ/gim/internal/wsgateway/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
+	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 )
 
@@ -140,8 +142,10 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 		g.compressor = codec.NewGzipCompressor()
 	}
 
+	ms := stores.NewMessageStore(db.GetDB())
+
 	// 初始化消息处理链
-	g.messageChain = handler.NewMessageChain(g.userManager)
+	g.messageChain = handler.NewMessageChain(g.userManager, ms)
 
 	return g, nil
 }

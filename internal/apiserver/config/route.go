@@ -10,11 +10,15 @@ import (
 
 func Register(sv *fuego.Server, db *gorm.DB) {
 	ustore := stores.NewUserStore(db)
+	mstore := stores.NewMessageStore(db)
 	us := services.NewUserService(ustore)
+	ms := services.NewMessageService(mstore)
 	uc := controllers.NewUserController(us)
+	mc := controllers.NewMessageController(ms)
 	apiv1 := fuego.Group(sv, "/api/v1",
 		fuego.OptionDescription("API v1"),
 		fuego.OptionHeader("Authentication", "Bearer Token", fuego.ParamRequired()),
 	)
 	uc.Route(apiv1)
+	mc.Route(apiv1)
 }

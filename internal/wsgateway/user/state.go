@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/woxQAQ/gim/internal/wsgateway/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 )
 
 // State 定义用户在各平台的在线状态.
@@ -16,5 +16,5 @@ type State struct {
 // StateObserver 定义用户状态观察者接口.
 type StateObserver interface {
 	// OnUserStateChange 当用户状态发生变化时调用.
-	OnUserStateChange(userID string, platformID int32, oldState, newState types.ConnectionState, timestamp time.Time)
+	OnUserStateChange(userID string, platformID int32, oldState, newState base.ConnectionState, timestamp time.Time)
 }

@@ -1,6 +1,22 @@
 {
 	"components": {
 		"schemas": {
+			"GetMessageHistoryRequest": {
+				"description": "GetMessageHistoryRequest schema",
+				"properties": {
+					"page_size": {
+						"type": "integer"
+					},
+					"page_token": {
+						"nullable": true,
+						"type": "string"
+					},
+					"user_id": {
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
 			"HTTPError": {
 				"description": "HTTPError schema",
 				"properties": {
@@ -67,6 +83,49 @@
 				],
 				"type": "object"
 			},
+			"MessageHistoryResponse": {
+				"description": "MessageHistoryResponse schema",
+				"properties": {
+					"messages": {
+						"items": {
+							"nullable": true,
+							"properties": {
+								"content": {
+									"type": "string"
+								},
+								"created_at": {
+									"format": "date-time",
+									"type": "string"
+								},
+								"id": {
+									"type": "string"
+								},
+								"receiver_id": {
+									"type": "string"
+								},
+								"sender_id": {
+									"type": "string"
+								},
+								"status": {
+									"format": "int32",
+									"type": "integer"
+								},
+								"type": {
+									"format": "int32",
+									"type": "integer"
+								}
+							},
+							"type": "object"
+						},
+						"type": "array"
+					},
+					"next_token": {
+						"nullable": true,
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
 			"RegisterRequest": {
 				"description": "RegisterRequest schema",
 				"properties": {
@@ -131,6 +190,95 @@
 	},
 	"openapi": "3.1.0",
 	"paths": {
+		"/api/v1/messages/history": {
+			"get": {
+				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*MessageController).GetMessageHistory`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n获取消息历史记录",
+				"operationId": "GET_/api/v1/messages/history",
+				"parameters": [
+					{
+						"description": "Bearer Token",
+						"in": "header",
+						"name": "Authentication",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Accept",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"*/*": {
+							"schema": {
+								"$ref": "#/components/schemas/GetMessageHistoryRequest"
+							}
+						}
+					},
+					"description": "Request body for request.GetMessageHistoryRequest",
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MessageHistoryResponse"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/MessageHistoryResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							}
+						},
+						"description": "Bad Request _(validation or deserialization error)_"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							}
+						},
+						"description": "Internal Server Error _(panics)_"
+					},
+					"default": {
+						"description": ""
+					}
+				},
+				"summary": "get message history",
+				"tags": [
+					"message"
+				]
+			}
+		},
 		"/api/v1/users/login": {
 			"post": {
 				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Login`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n用户登录",
@@ -403,6 +551,9 @@
 		}
 	],
 	"tags": [
+		{
+			"name": "message"
+		},
 		{
 			"name": "user"
 		}

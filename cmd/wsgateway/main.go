@@ -11,20 +11,24 @@ import (
 	"time"
 
 	"github.com/woxQAQ/gim/internal/wsgateway"
+	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 	"github.com/woxQAQ/gim/pkg/snowflake"
+	"go.uber.org/zap"
 )
 
 var (
-	addr     string
-	logLevel string
-	logFile  string
+	addr         string
+	logLevel     string
+	logFile      string
+	databasePath string
 )
 
 func init() {
 	flag.StringVar(&addr, "addr", ":8080", "WebSocket服务监听地址")
 	flag.StringVar(&logLevel, "log-level", "info", "日志级别 (debug, info, warn, error)")
 	flag.StringVar(&logFile, "log-file", "", "日志文件路径，为空时仅输出到控制台")
+	flag.StringVar(&databasePath, "db-path", "gim.db", "SQLite数据库文件路径")
 }
 
 func main() {
@@ -35,7 +39,7 @@ func main() {
 	l, err := logger.NewLogger(logger.DomainWSGateway, &logger.Config{
 		Level:    logLevel,
 		FilePath: logFile,
-	})
+	}, zap.AddCallerSkip(1))
 	if err != nil {
 		fmt.Printf("初始化日志系统失败: %v\n", err)
 		os.Exit(1)
@@ -44,6 +48,14 @@ func main() {
 	// 初始化消息ID生成器
 	if err := snowflake.InitGenerator(1); err != nil {
 		l.Error("初始化消息ID生成器失败", logger.Error(err))
+		os.Exit(1)
+	}
+
+	// 初始化数据库连接
+	if err := db.Init(&db.Config{
+		DatabasePath: databasePath,
+	}); err != nil {
+		l.Error("初始化数据库连接失败", logger.Error(err))
 		os.Exit(1)
 	}
 
@@ -97,6 +109,11 @@ func main() {
 	// 关闭网关服务
 	if err := gateway.Stop(); err != nil {
 		l.Error("关闭网关服务失败", logger.Error(err))
+	}
+
+	// 关闭数据库连接
+	if err := db.Close(); err != nil {
+		l.Error("关闭数据库连接失败", logger.Error(err))
 	}
 
 	l.Info("服务已完全关闭")

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/woxQAQ/gim/internal/wsgateway/types"
+	"github.com/woxQAQ/gim/internal/types"
 )
 
 // Handler 定义消息处理器接口

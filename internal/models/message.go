@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/woxQAQ/gim/internal/apiserver/types/response"
+	"github.com/woxQAQ/gim/internal/types"
 	"gorm.io/gorm"
 )
 
@@ -22,37 +24,17 @@ const (
 	MessageStatusFailed
 )
 
-// MessageType 消息类型
-type MessageType int8
-
-const (
-	// MessageTypeUnknown 未知类型
-	MessageTypeUnknown MessageType = iota
-	// MessageTypeText 文本消息
-	MessageTypeText
-	// MessageTypeImage 图片消息
-	MessageTypeImage
-	// MessageTypeVideo 视频消息
-	MessageTypeVideo
-	// MessageTypeAudio 音频消息
-	MessageTypeAudio
-	// MessageTypeFile 文件消息
-	MessageTypeFile
-	// MessageTypeCustom 自定义消息
-	MessageTypeCustom
-)
-
 // Message 消息模型
 type Message struct {
-	ID        string        `gorm:"primaryKey;type:text"`
-	Type      MessageType   `gorm:"type:smallint;not null;index"`
-	Content   string        `gorm:"type:text;not null"`
-	FromID    string        `gorm:"type:text;not null;index"`
-	ToID      string        `gorm:"type:text;not null;index"`
-	Status    MessageStatus `gorm:"type:smallint;not null;default:1;index"`
-	Platform  int32         `gorm:"type:integer;not null;index"`
-	CreatedAt time.Time     `gorm:"autoCreateTime;index"`
-	UpdatedAt time.Time     `gorm:"autoUpdateTime"`
+	ID        string            `gorm:"primaryKey;type:text"`
+	Type      types.MessageType `gorm:"type:smallint;not null;index"`
+	Content   string            `gorm:"type:text;not null"`
+	FromID    string            `gorm:"type:text;not null;index"`
+	ToID      string            `gorm:"type:text;not null;index"`
+	Status    MessageStatus     `gorm:"type:smallint;not null;default:1;index"`
+	Platform  int32             `gorm:"type:integer;not null;index"`
+	CreatedAt time.Time         `gorm:"autoCreateTime;index"`
+	UpdatedAt time.Time         `gorm:"autoUpdateTime"`
 }
 
 func (m *Message) TableName() string {
@@ -63,6 +45,28 @@ func (m *Message) TableName() string {
 func (m *Message) BeforeCreate(tx *gorm.DB) error {
 	// TODO: 实现消息ID生成逻辑
 	return nil
+}
+
+// ToResponse 将Message转换为MessageResponse
+func (m *Message) ToResponse() *response.MessageResponse {
+	return &response.MessageResponse{
+		ID:         m.ID,
+		SenderID:   m.FromID,
+		ReceiverID: m.ToID,
+		Content:    m.Content,
+		Type:       int32(m.Type),
+		Status:     int32(m.Status),
+		CreatedAt:  m.CreatedAt,
+	}
+}
+
+func (m *Message) FromTypes(msg types.Message) {
+	m.ID = msg.Header.ID
+	m.FromID = msg.Header.From
+	m.ToID = msg.Header.To
+	m.Content = string(msg.Payload)
+	m.Platform = msg.Header.Platform
+	m.CreatedAt = msg.Header.Timestamp
 }
 
 // MessageAttachment 消息附件模型

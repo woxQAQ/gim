@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/woxQAQ/gim/internal/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
-	"github.com/woxQAQ/gim/internal/wsgateway/types"
 	"github.com/woxQAQ/gim/pkg/workerpool"
 )
 
@@ -18,7 +19,7 @@ type WebSocketConn struct {
 	id         string
 	platformID int32
 	conn       *websocket.Conn
-	state      types.ConnectionState
+	state      base.ConnectionState
 	stateMu    sync.RWMutex
 
 	lastPingTime time.Time
@@ -44,7 +45,7 @@ func NewWebSocketConn(conn *websocket.Conn, id string, platformID int32) *WebSoc
 		id:           id,
 		platformID:   platformID,
 		conn:         conn,
-		state:        types.Disconnected,
+		state:        base.Disconnected,
 		lastPingTime: time.Now(),
 		closeChan:    make(chan struct{}),
 		onError:      func(err error) { fmt.Printf("WebSocket连接错误 [ID: %s]: %v\n", id, err) },
@@ -55,7 +56,7 @@ func NewWebSocketConn(conn *websocket.Conn, id string, platformID int32) *WebSoc
 // Connect 实现LongConn接口的Connect方法
 func (w *WebSocketConn) Connect(ctx context.Context) error {
 	// WebSocket连接已经在HTTP升级时建立，这里只需要启动消息读取循环
-	w.setConnectionState(types.Connected)
+	w.setConnectionState(base.Connected)
 	workerpool.GetInstance().Start()
 	workerpool.GetInstance().Submit(w.readPump)
 	return nil
@@ -64,7 +65,7 @@ func (w *WebSocketConn) Connect(ctx context.Context) error {
 // Disconnect 实现LongConn接口的Disconnect方法
 func (w *WebSocketConn) Disconnect(err error) error {
 	w.closeOnce.Do(func() {
-		w.setConnectionState(types.Closing)
+		w.setConnectionState(base.Closing)
 		close(w.closeChan)
 
 		// 关闭WebSocket连接
@@ -72,7 +73,7 @@ func (w *WebSocketConn) Disconnect(err error) error {
 			w.conn.Close()
 		}
 
-		w.setConnectionState(types.Disconnected)
+		w.setConnectionState(base.Disconnected)
 
 		// 触发断开连接回调
 		if w.onDisconnect != nil {
@@ -84,7 +85,7 @@ func (w *WebSocketConn) Disconnect(err error) error {
 
 // Send 实现LongConn接口的Send方法
 func (w *WebSocketConn) Send(msg types.Message) error {
-	if w.State() != types.Connected {
+	if w.State() != base.Connected {
 		return errors.New("connection is not established")
 	}
 
@@ -110,7 +111,7 @@ func (w *WebSocketConn) Receive() (types.Message, error) {
 }
 
 // State 实现LongConn接口的State方法
-func (w *WebSocketConn) State() types.ConnectionState {
+func (w *WebSocketConn) State() base.ConnectionState {
 	w.stateMu.RLock()
 	defer w.stateMu.RUnlock()
 	return w.state
@@ -158,7 +159,7 @@ func (w *WebSocketConn) OnError(handler func(error)) {
 // 内部方法
 
 // setConnectionState 设置连接状态
-func (w *WebSocketConn) setConnectionState(state types.ConnectionState) {
+func (w *WebSocketConn) setConnectionState(state base.ConnectionState) {
 	w.stateMu.Lock()
 	defer w.stateMu.Unlock()
 	w.state = state

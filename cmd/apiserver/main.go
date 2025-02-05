@@ -10,9 +10,10 @@ import (
 
 	"github.com/go-fuego/fuego"
 	"github.com/woxQAQ/gim/internal/apiserver/config"
-	"github.com/woxQAQ/gim/internal/apiserver/db"
+	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 	"github.com/woxQAQ/gim/pkg/middleware"
+	"go.uber.org/zap"
 )
 
 var (
@@ -37,7 +38,7 @@ func main() {
 	l, err := logger.NewLogger(logger.DomainAPIServer, &logger.Config{
 		Level:    logLevel,
 		FilePath: logFile,
-	})
+	}, zap.AddCallerSkip(1))
 	if err != nil {
 		fmt.Printf("初始化日志系统失败: %v\n", err)
 		os.Exit(1)

@@ -3,7 +3,8 @@ package stores
 import (
 	"errors"
 
-	"github.com/woxQAQ/gim/internal/apiserver/models"
+	"github.com/woxQAQ/gim/internal/models"
+
 	"gorm.io/gorm"
 )
 

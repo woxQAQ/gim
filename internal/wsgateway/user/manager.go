@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/woxQAQ/gim/internal/wsgateway/types"
+	"github.com/woxQAQ/gim/internal/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/pkg/workerpool"
 )
 
@@ -15,11 +16,11 @@ type IUserManager interface {
 	Start(ctx context.Context) error
 
 	// AddConn 添加用户的平台连接
-	AddConn(userID string, platformID int32, conn types.LongConn) error
+	AddConn(userID string, platformID int32, conn base.LongConn) error
 	// RemoveConn 移除用户的平台连接
 	RemoveConn(userID string, platformID int32) error
 	// GetConn 获取用户在指定平台的连接
-	GetConn(userID string, platformID int32) (types.LongConn, error)
+	GetConn(userID string, platformID int32) (base.LongConn, error)
 	// GetState 获取用户在各平台的在线状态
 	GetState(userID string) (*State, error)
 	// GetAll 获取所有用户的状态信息
@@ -80,7 +81,7 @@ func (um *Manager) RemoveObserver(observer StateObserver) {
 }
 
 // notifyStateChange 通知所有观察者状态变化.
-func (um *Manager) notifyStateChange(userID string, platformID int32, oldState, newState types.ConnectionState) {
+func (um *Manager) notifyStateChange(userID string, platformID int32, oldState, newState base.ConnectionState) {
 	um.mutex.RLock()
 	defer um.mutex.RUnlock()
 	timestamp := time.Now()
@@ -94,7 +95,7 @@ func (um *Manager) notifyStateChange(userID string, platformID int32, oldState, 
 }
 
 // AddConn 实现 IUserManager 接口.
-func (um *Manager) AddConn(userID string, platformID int32, conn types.LongConn) error {
+func (um *Manager) AddConn(userID string, platformID int32, conn base.LongConn) error {
 	um.mutex.Lock()
 	defer um.mutex.Unlock()
 
@@ -108,7 +109,7 @@ func (um *Manager) AddConn(userID string, platformID int32, conn types.LongConn)
 	defer up.mutex.Unlock()
 
 	// 获取旧连接的状态（如果存在）
-	var oldState types.ConnectionState = types.Disconnected
+	var oldState base.ConnectionState = base.Disconnected
 	if oldConn, exists := up.Conns[platformID]; exists {
 		oldState = oldConn.State()
 	}
@@ -120,7 +121,7 @@ func (um *Manager) AddConn(userID string, platformID int32, conn types.LongConn)
 
 	// 设置连接断开回调.
 	conn.OnDisconnect(func(err error) {
-		um.notifyStateChange(userID, platformID, types.Connected, types.Disconnected)
+		um.notifyStateChange(userID, platformID, base.Connected, base.Disconnected)
 	})
 
 	return nil
@@ -148,7 +149,7 @@ func (um *Manager) RemoveConn(userID string, platformID int32) error {
 }
 
 // GetConn 实现 IUserManager 接口.
-func (um *Manager) GetConn(userID string, platformID int32) (types.LongConn, error) {
+func (um *Manager) GetConn(userID string, platformID int32) (base.LongConn, error) {
 	um.mutex.RLock()
 	defer um.mutex.RUnlock()
 
@@ -180,7 +181,7 @@ func (um *Manager) GetState(userID string) (*State, error) {
 	up.mutex.RLock()
 	defer up.mutex.RUnlock()
 	for platformID, conn := range up.Conns {
-		if conn.State() == types.Connected {
+		if conn.State() == base.Connected {
 			state.OnlinePlatform = append(state.OnlinePlatform, platformID)
 		} else {
 			state.OfflinePlatform = append(state.OfflinePlatform, platformID)
@@ -213,7 +214,7 @@ func (um *Manager) BroadcastMessage(msg types.Message) []error {
 	for _, up := range um.users {
 		up.mutex.RLock()
 		for _, conn := range up.Conns {
-			if conn.State() == types.Connected {
+			if conn.State() == base.Connected {
 				if err := conn.Send(msg); err != nil {
 					errors = append(errors, err)
 				}
@@ -238,7 +239,7 @@ func (um *Manager) SendMessage(userID string, msg types.Message) []error {
 	up.mutex.RLock()
 	defer up.mutex.RUnlock()
 	for _, conn := range up.Conns {
-		if conn.State() == types.Connected {
+		if conn.State() == base.Connected {
 			if err := conn.Send(msg); err != nil {
 				errors = append(errors, err)
 			}

@@ -3,9 +3,10 @@ package db
 import (
 	"sync"
 
-	"github.com/woxQAQ/gim/internal/apiserver/models"
+	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/pkg/logger"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -26,7 +27,7 @@ func Init(cfg *Config) error {
 	once.Do(func() {
 		// 连接SQLite数据库
 		var dl logger.Logger
-		dl, err = logger.NewLogger(logger.DomainDatabase, nil)
+		dl, err = logger.NewLogger(logger.DomainDatabase, nil, zap.AddCallerSkip(1))
 		if err != nil {
 			return
 		}

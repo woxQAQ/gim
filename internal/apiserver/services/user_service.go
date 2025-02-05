@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/woxQAQ/gim/internal/apiserver/models"
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/apiserver/types/response"
+	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/pkg/snowflake"
 )
 

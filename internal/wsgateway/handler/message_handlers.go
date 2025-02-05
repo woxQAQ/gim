@@ -1,7 +1,9 @@
 package handler
 
 import (
-	"github.com/woxQAQ/gim/internal/wsgateway/types"
+	"github.com/woxQAQ/gim/internal/apiserver/stores"
+	"github.com/woxQAQ/gim/internal/models"
+	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
 )
 
@@ -41,31 +43,39 @@ func (h *ForwardHandler) Handle(msg types.Message) (bool, error) {
 // StoreHandler 消息存储处理器
 type StoreHandler struct {
 	BaseHandler
+	messageStore *stores.MessageStore
 }
 
 // NewStoreHandler 创建消息存储处理器
-func NewStoreHandler() *StoreHandler {
-	return &StoreHandler{}
+func NewStoreHandler(messageStore *stores.MessageStore) *StoreHandler {
+	return &StoreHandler{messageStore: messageStore}
 }
 
 // Handle 实现消息存储逻辑
 func (h *StoreHandler) Handle(msg types.Message) (bool, error) {
-	// TODO: 实现消息存储逻辑
-	// 这里可以添加将消息保存到数据库或其他存储系统的逻辑
+	// 将消息转换为数据库模型
+	message := &models.Message{}
+	message.FromTypes(msg)
+
+	// 保存消息到数据库
+	err := h.messageStore.CreateMessage(message)
+	if err != nil {
+		return false, err
+	}
 
 	// 继续处理链
 	return true, nil
 }
 
 // NewMessageChain 创建默认的消息处理链
-func NewMessageChain(userManager user.IUserManager) *Chain {
+func NewMessageChain(userManager user.IUserManager, ms *stores.MessageStore) *Chain {
 	chain := NewChain()
 
 	// 添加消息转发处理器
 	chain.AddHandler(NewForwardHandler(userManager))
 
 	// 添加消息存储处理器
-	chain.AddHandler(NewStoreHandler())
+	chain.AddHandler(NewStoreHandler(ms))
 
 	return chain
 }

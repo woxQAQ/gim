@@ -62,7 +62,7 @@ type logger struct {
 }
 
 // NewLogger 创建指定领域的日志记录器.
-func NewLogger(domain Domain, cfg *Config) (Logger, error) {
+func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
 	// 使用默认配置
 	if cfg == nil {
 		cfg = &defaultConfig
@@ -115,6 +115,9 @@ func NewLogger(domain Domain, cfg *Config) (Logger, error) {
 
 	// 创建logger.
 	zapLogger := zap.New(core, zap.AddCaller()).With(zap.String("domain", string(domain)))
+	for _, opt := range opts {
+		zapLogger = zapLogger.WithOptions(opt)
+	}
 	l := &logger{
 		zapLogger: zapLogger,
 		domain:    domain,
