@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
+	"github.com/woxQAQ/gim/internal/wsgateway/handler"
 	"github.com/woxQAQ/gim/internal/wsgateway/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
 	"github.com/woxQAQ/gim/pkg/logger"
@@ -54,6 +55,9 @@ type WSGateway struct {
 	// 消息编解码和压缩
 	compressor codec.Compressor
 	encoder    codec.Encoder
+
+	// 消息处理链
+	messageChain *handler.Chain
 
 	// 日志记录器
 	logger logger.Logger
@@ -135,6 +139,9 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 	if g.compressor == nil {
 		g.compressor = codec.NewGzipCompressor()
 	}
+
+	// 初始化消息处理链
+	g.messageChain = handler.NewMessageChain(g.userManager)
 
 	return g, nil
 }
@@ -285,35 +292,20 @@ func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) 
 
 	// 设置连接回调
 	wsConn.OnMessage(func(msg types.Message) {
-		// 根据消息类型进行不同处理
-		switch msg.Header.Type {
-		case types.MessageTypeHeartbeat:
-			// 心跳消息特殊处理
+		// 心跳消息特殊处理
+		if msg.Header.Type == types.MessageTypeHeartbeat {
 			g.logger.Debug("Received heartbeat from user",
 				logger.String("user_id", userID),
 				logger.Int32("platform_id", platformID))
-			// 更新最后心跳时间
 			wsConn.UpdateLastPingTime(time.Now())
-		case types.MessageTypeText:
-			// 文本消息处理
-			g.logger.Info("Received text message from user",
+			return
+		}
+
+		// 使用责任链处理其他类型的消息
+		if err := g.messageChain.Process(msg); err != nil {
+			g.logger.Error("Failed to process message",
 				logger.String("user_id", userID),
-				logger.String("message", string(msg.Payload)))
-		case types.MessageTypeImage, types.MessageTypeVideo, types.MessageTypeAudio, types.MessageTypeFile:
-			// 二进制消息处理
-			g.logger.Info("Received binary message from user",
-				logger.String("user_id", userID),
-				logger.String("type", msg.Header.Type.String()),
-				logger.Int("size", len(msg.Payload)))
-		case types.MessageTypeSystem:
-			// 系统消息处理
-			g.logger.Info("Received system message from user",
-				logger.String("user_id", userID),
-				logger.String("message", string(msg.Payload)))
-		default:
-			g.logger.Warn("Received unknown message type from user",
-				logger.String("user_id", userID),
-				logger.Int32("type", int32(msg.Header.Type)))
+				logger.Error(err))
 		}
 	})
 
