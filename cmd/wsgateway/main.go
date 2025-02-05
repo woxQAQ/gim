@@ -27,7 +27,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&addr, "addr", ":8080", "WebSocket服务监听地址")
+	flag.StringVar(&addr, "addr", "127.0.0.1:8080", "WebSocket服务监听地址")
 	flag.StringVar(&logLevel, "log-level", "info", "日志级别 (debug, info, warn, error)")
 	flag.StringVar(&logFile, "log-file", "", "日志文件路径，为空时仅输出到控制台")
 	flag.StringVar(&databasePath, "db-path", "gim.db", "SQLite数据库文件路径")

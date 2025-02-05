@@ -94,15 +94,12 @@ func (p *workerPool) Submit(task Task) {
 	}
 	p.mu.Unlock()
 
+	// 使用单个select语句避免嵌套select可能导致的死锁
 	select {
 	case <-p.ctx.Done():
 		return
-	default:
-		select {
-		case <-p.ctx.Done():
-			return
-		case p.taskQueue <- task:
-		}
+	case p.taskQueue <- task:
+		// 任务已成功提交
 	}
 }
 

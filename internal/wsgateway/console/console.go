@@ -22,9 +22,7 @@ func NewConsole(gateway wsgateway.Gateway, logger logger.Logger) *Console {
 
 // Start 启动控制台
 func (c *Console) Start() {
-	c.logger.Disable()
-	defer c.logger.Enable()
-	cmd.Execute(c.gateway)
+	cmd.Execute(c.gateway, c.logger)
 }
 
 // Stop 停止控制台

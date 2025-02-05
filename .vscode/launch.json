@@ -21,6 +21,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "cmd/wsgateway/main.go",
+            "console": "integratedTerminal",
             "args": [
                 "--db-path",
                 "${workspaceFolder}/gim.db"

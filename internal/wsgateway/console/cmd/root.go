@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/woxQAQ/gim/internal/wsgateway"
+	"github.com/woxQAQ/gim/pkg/logger"
 )
 
 var (
@@ -66,7 +67,7 @@ func getCompletions(line string) []string {
 }
 
 // Execute 执行根命令
-func Execute(g wsgateway.Gateway) {
+func Execute(g wsgateway.Gateway, l logger.Logger) {
 	gateway = g
 
 	// 初始化readline实例
@@ -120,9 +121,13 @@ func Execute(g wsgateway.Gateway) {
 
 			// 执行命令
 			rootCmd.SetArgs(strings.Fields(line))
-			if err := rootCmd.Execute(); err != nil {
+			l.Disable()
+			err = rootCmd.Execute()
+			l.Enable()
+			if err != nil {
 				fmt.Printf("执行命令失败: %v\n", err)
 			}
+			l.Enable()
 		}
 	}
 
