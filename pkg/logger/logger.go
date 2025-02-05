@@ -51,6 +51,7 @@ var (
 	Int     = zap.Int
 	Int32   = zap.Int32
 	Int64   = zap.Int64
+	Time    = zap.Time
 	Float64 = zap.Float64
 	Bool    = zap.Bool
 	Any     = zap.Any

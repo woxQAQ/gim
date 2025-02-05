@@ -61,6 +61,15 @@ func getCompletions(line string) []string {
 	case "broadcast":
 		// broadcast命令接受任意文本消息
 		return []string{}
+	case "stats":
+		// stats命令可以接受user_id和platform_id参数
+		if len(parts) == 2 {
+			// 这里可以添加用户ID的补全逻辑
+			return []string{}
+		} else if len(parts) == 3 {
+			// 提供平台ID的补全
+			return []string{"1"}
+		}
 	}
 
 	return []string{}

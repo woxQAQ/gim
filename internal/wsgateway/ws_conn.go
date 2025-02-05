@@ -201,7 +201,7 @@ func (w *WebSocketConn) readPump() {
 
 // heartbeatChecker 心跳检测协程
 func (w *WebSocketConn) heartbeatChecker() {
-	ticker := time.NewTicker(30 * time.Second) // 每30秒检查一次
+	ticker := time.NewTicker(10 * time.Second) // 每30秒检查一次
 	defer ticker.Stop()
 
 	var handleHeartbeatError = func(err error) {
@@ -218,11 +218,12 @@ func (w *WebSocketConn) heartbeatChecker() {
 		case <-ticker.C:
 			// 发送ping消息
 			if err := w.conn.WriteControl(websocket.PingMessage,
-				[]byte("\n"), time.Now().Add(10*time.Second),
+				[]byte("ping"), time.Now().Add(10*time.Second),
 			); err != nil {
 				handleHeartbeatError(err)
 				return
 			}
+			w.lastPingTime = time.Now()
 
 			// 检查最后一次心跳时间
 			if time.Since(w.LastPingTime()) > 60*time.Second {

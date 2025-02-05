@@ -2,6 +2,7 @@ package wsgateway
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -41,6 +42,9 @@ type Gateway interface {
 
 	// IsUserOnline 检查用户是否在线
 	IsUserOnline(userID string) bool
+
+	// GetUserHeartbeatStatus 获取指定用户在指定平台的最后心跳时间
+	GetUserHeartbeatStatus(userID string, platformID int32) (time.Time, error)
 }
 
 // WSGateway 实现Gateway接口的WebSocket网关.
@@ -253,6 +257,33 @@ func (g *WSGateway) IsUserOnline(userID string) bool {
 	isOnline := state != nil && len(state.OnlinePlatform) > 0
 	g.logger.Info("Checking user online status", logger.String("user_id", userID), logger.Bool("is_online", isOnline))
 	return isOnline
+}
+
+// GetUserHeartbeatStatus 实现Gateway接口的GetUserHeartbeatStatus方法.
+func (g *WSGateway) GetUserHeartbeatStatus(userID string, platformID int32) (time.Time, error) {
+	g.logger.Info("Getting user heartbeat status",
+		logger.String("user_id", userID),
+		logger.Int32("platform_id", platformID))
+
+	// 获取用户连接
+	conn, err := g.userManager.GetConn(userID, platformID)
+	if err != nil {
+		g.logger.Error("Failed to get user connection", logger.Error(err))
+		return time.Time{}, err
+	}
+
+	if conn == nil {
+		return time.Time{}, fmt.Errorf("user %s platform %d not connected", userID, platformID)
+	}
+
+	// 获取最后心跳时间
+	lastPingTime := conn.LastPingTime()
+	g.logger.Info("Got user heartbeat status",
+		logger.String("user_id", userID),
+		logger.Int32("platform_id", platformID),
+		logger.Time("last_ping_time", lastPingTime))
+
+	return lastPingTime, nil
 }
 
 // HandleNewConnection 处理新的WebSocket连接.
