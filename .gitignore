@@ -13,5 +13,6 @@
 server.crt
 server.key
 gim.db
+cover.out
 
 __debug_bin*

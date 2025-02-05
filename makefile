@@ -5,7 +5,12 @@ module:
 
 .phony: fmt
 fmt:
-	go fmt 
+	go fmt ./... 
+
+.phony: test
+test: fmt module
+	@ echo "\033[1;32mtest gim...\033[0m"
+	go test ./... -coverprofile cover.out
 
 .phony: lint
 lint: module
