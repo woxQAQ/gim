@@ -38,6 +38,8 @@ type Logger interface {
 	Warn(msg string, fields ...Field)
 	Error(msg string, fields ...Field)
 	With(fields ...Field) Logger
+	Enable()
+	Disable()
 }
 
 // Field 日志字段.
@@ -59,6 +61,54 @@ var (
 type logger struct {
 	zapLogger *zap.Logger
 	domain    Domain
+	disabled  bool
+}
+
+// Enable 启用日志输出
+func (l *logger) Enable() {
+	l.disabled = false
+}
+
+// Disable 禁用日志输出
+func (l *logger) Disable() {
+	l.disabled = true
+}
+
+// Debug 实现Logger接口
+func (l *logger) Debug(msg string, fields ...Field) {
+	if !l.disabled {
+		l.zapLogger.Debug(msg, fields...)
+	}
+}
+
+// Info 实现Logger接口
+func (l *logger) Info(msg string, fields ...Field) {
+	if !l.disabled {
+		l.zapLogger.Info(msg, fields...)
+	}
+}
+
+// Warn 实现Logger接口
+func (l *logger) Warn(msg string, fields ...Field) {
+	if !l.disabled {
+		l.zapLogger.Warn(msg, fields...)
+	}
+}
+
+// Error 实现Logger接口
+func (l *logger) Error(msg string, fields ...Field) {
+	if !l.disabled {
+		l.zapLogger.Error(msg, fields...)
+	}
+}
+
+// With 实现Logger接口
+func (l *logger) With(fields ...Field) Logger {
+	return &logger{
+		zapLogger: l.zapLogger.With(fields...),
+		domain:    l.domain,
+		disabled:  l.disabled,
+	}
 }
 
 // NewLogger 创建指定领域的日志记录器.
@@ -124,32 +174,4 @@ func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
 	}
 
 	return l, nil
-}
-
-// Debug 实现Logger接口.
-func (l *logger) Debug(msg string, fields ...Field) {
-	l.zapLogger.Debug(msg, fields...)
-}
-
-// Info 实现Logger接口.
-func (l *logger) Info(msg string, fields ...Field) {
-	l.zapLogger.Info(msg, fields...)
-}
-
-// Warn 实现Logger接口.
-func (l *logger) Warn(msg string, fields ...Field) {
-	l.zapLogger.Warn(msg, fields...)
-}
-
-// Error 实现Logger接口.
-func (l *logger) Error(msg string, fields ...Field) {
-	l.zapLogger.Error(msg, fields...)
-}
-
-// With 实现Logger接口.
-func (l *logger) With(fields ...Field) Logger {
-	return &logger{
-		zapLogger: l.zapLogger.With(fields...),
-		domain:    l.domain,
-	}
 }
