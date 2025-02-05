@@ -1,6 +1,7 @@
 # 默认忽略的文件
 /.idea
-/.vscode
+/.vscode/*
+!/.vscode/launch.json
 .DS_Store
 /shelf/
 /workspace.xml
