@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/internal/types"
@@ -29,9 +31,10 @@ func (h *ForwardHandler) Handle(msg types.Message) (bool, error) {
 		types.MessageTypeFile:
 		// 如果消息有特定目标用户，则转发给目标用户
 		if msg.Header.To != "" {
-			err := h.userManager.SendPlatformMessage(msg.Header.To, msg.Header.Platform, msg)
+			// 不再使用Platform字段，确保消息能够正确转发给目标用户
+			err := h.userManager.SendMessage(msg.Header.To, msg)
 			if err != nil {
-				return false, err
+				return false, errors.Join(err...)
 			}
 		}
 	}

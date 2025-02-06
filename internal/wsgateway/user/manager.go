@@ -234,10 +234,10 @@ func (um *Manager) BroadcastMessage(msg types.Message) []error {
 // SendMessage 实现 IUserManager 接口.
 func (um *Manager) SendMessage(userID string, msg types.Message) []error {
 	um.mutex.RLock()
-	defer um.mutex.RUnlock()
 
 	var errors []error
 	up, exists := um.users[userID]
+	um.mutex.RUnlock()
 	if !exists {
 		return nil
 	}

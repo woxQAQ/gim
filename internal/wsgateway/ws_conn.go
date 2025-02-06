@@ -201,14 +201,14 @@ func (w *WebSocketConn) readPump() {
 
 // heartbeatChecker 心跳检测协程
 func (w *WebSocketConn) heartbeatChecker() {
-	ticker := time.NewTicker(10 * time.Second) // 每30秒检查一次
+	ticker := time.NewTicker(30 * time.Second) // 调整为30秒检查一次
 	defer ticker.Stop()
 
 	var handleHeartbeatError = func(err error) {
 		if w.onError != nil {
 			w.onError(err)
 		}
-		_ = w.Disconnect(err) // 忽略Disconnect可能返回的错误，因为连接已经出现问题
+		_ = w.Disconnect(err)
 	}
 
 	for {
@@ -216,17 +216,17 @@ func (w *WebSocketConn) heartbeatChecker() {
 		case <-w.closeChan:
 			return
 		case <-ticker.C:
-			// 发送ping消息
+			// 发送ping消息，延长超时时间
 			if err := w.conn.WriteControl(websocket.PingMessage,
-				[]byte("ping"), time.Now().Add(10*time.Second),
+				[]byte("ping"), time.Now().Add(30*time.Second),
 			); err != nil {
 				handleHeartbeatError(err)
 				return
 			}
-			w.lastPingTime = time.Now()
+			w.UpdateLastPingTime(time.Now())
 
-			// 检查最后一次心跳时间
-			if time.Since(w.LastPingTime()) > 60*time.Second {
+			// 延长心跳超时时间
+			if time.Since(w.LastPingTime()) > 90*time.Second {
 				handleHeartbeatError(errors.New("heartbeat timeout"))
 				return
 			}

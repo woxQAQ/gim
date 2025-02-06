@@ -14,6 +14,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.31.0
+	google.golang.org/protobuf v1.36.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
