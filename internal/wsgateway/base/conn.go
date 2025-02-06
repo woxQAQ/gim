@@ -3,8 +3,6 @@ package base
 import (
 	"context"
 	"time"
-
-	"github.com/woxQAQ/gim/internal/types"
 )
 
 // ConnectionState 定义连接状态。
@@ -26,10 +24,10 @@ type LongConn interface {
 	Disconnect(err error) error
 
 	// Send 发送消息
-	Send(msg types.Message) error
+	Send(msg IMessage) error
 
 	// Receive 接收消息
-	Receive() (types.Message, error)
+	Receive() (IMessage, error)
 
 	// State 获取当前连接状态
 	State() ConnectionState
@@ -47,7 +45,7 @@ type LongConn interface {
 	PlatformID() int32
 
 	// OnMessage 设置消息处理回调
-	OnMessage(handler func(types.Message))
+	OnMessage(handler func(IMessage))
 
 	// OnDisconnect 设置连接断开回调
 	OnDisconnect(handler func(error))

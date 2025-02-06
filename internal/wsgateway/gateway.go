@@ -11,6 +11,7 @@ import (
 
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/internal/wsgateway/handler"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
@@ -29,13 +30,13 @@ type Gateway interface {
 	Stop() error
 
 	// Broadcast 广播消息给所有在线用户
-	Broadcast(msg types.Message) []error
+	Broadcast(msg base.IMessage) []error
 
 	// SendToAllPlatforms 向指定用户的所有平台发送消息
-	SendToAllPlatforms(userID string, msg types.Message) []error
+	SendToAllPlatforms(userID string, msg base.IMessage) []error
 
 	// SendToPlatform 向指定用户的指定平台发送消息
-	SendToPlatform(userID string, platformID int32, msg types.Message) error
+	SendToPlatform(userID string, platformID int32, msg base.IMessage) error
 
 	// GetOnlineCount 获取当前在线用户数量
 	GetOnlineCount() int
@@ -194,7 +195,7 @@ func (g *WSGateway) Stop() error {
 }
 
 // Broadcast 实现Gateway接口的Broadcast方法.
-func (g *WSGateway) Broadcast(msg types.Message) []error {
+func (g *WSGateway) Broadcast(msg base.IMessage) []error {
 	g.logger.Info("Broadcasting message to all online users")
 	errs := g.userManager.BroadcastMessage(msg)
 	if len(errs) > 0 {
@@ -207,7 +208,7 @@ func (g *WSGateway) Broadcast(msg types.Message) []error {
 
 // SendToUser 实现Gateway接口的SendToUser方法.
 // SendToAllPlatforms 向指定用户的所有平台发送消息.
-func (g *WSGateway) SendToAllPlatforms(userID string, msg types.Message) []error {
+func (g *WSGateway) SendToAllPlatforms(userID string, msg base.IMessage) []error {
 	g.logger.Info("Sending message to all platforms of user", logger.String("user_id", userID))
 	errs := g.userManager.SendMessage(userID, msg)
 	if len(errs) > 0 {
@@ -219,7 +220,7 @@ func (g *WSGateway) SendToAllPlatforms(userID string, msg types.Message) []error
 }
 
 // SendToPlatform 向指定用户的指定平台发送消息.
-func (g *WSGateway) SendToPlatform(userID string, platformID int32, msg types.Message) error {
+func (g *WSGateway) SendToPlatform(userID string, platformID int32, msg base.IMessage) error {
 	g.logger.Info("Sending message to specific platform",
 		logger.String("user_id", userID),
 		logger.Int32("platform_id", platformID))
@@ -327,9 +328,9 @@ func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) 
 	wsConn.encoder = g.encoder
 
 	// 设置连接回调
-	wsConn.OnMessage(func(msg types.Message) {
+	wsConn.OnMessage(func(msg base.IMessage) {
 		// 心跳消息特殊处理
-		if msg.Header.Type == types.MessageTypeHeartbeat {
+		if msg.GetType() == types.MessageTypeHeartbeat {
 			g.logger.Debug("Received heartbeat from user",
 				logger.String("user_id", userID),
 				logger.Int32("platform_id", platformID))

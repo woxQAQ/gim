@@ -22,7 +22,7 @@ var broadcastCmd = &cobra.Command{
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		message := strings.Join(args, " ")
-		msg := types.Message{
+		msg := &types.Message{
 			Header: types.MessageHeader{
 				Type:      types.MessageTypeText,
 				Timestamp: time.Now(),

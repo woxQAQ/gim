@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"github.com/woxQAQ/gim/internal/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 )
 
 // Handler 定义消息处理器接口
 type Handler interface {
 	// Handle 处理消息，返回是否继续处理链
-	Handle(msg types.Message) (bool, error)
+	Handle(msg base.IMessage) (bool, error)
 	// SetNext 设置下一个处理器
 	SetNext(handler Handler)
 	// GetNext 获取下一个处理器
@@ -53,7 +53,7 @@ func (c *Chain) AddHandler(handler Handler) {
 }
 
 // Process 处理消息
-func (c *Chain) Process(msg types.Message) error {
+func (c *Chain) Process(msg base.IMessage) error {
 	if c.head == nil {
 		return nil
 	}

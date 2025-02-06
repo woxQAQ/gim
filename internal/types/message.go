@@ -3,6 +3,7 @@ package types
 import (
 	"time"
 
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/pkg/snowflake"
 )
 
@@ -40,4 +41,35 @@ func NewMessage(msgType MessageType, from, to string, platform int32, payload []
 // generateMessageID 生成消息唯一标识
 func generateMessageID() string {
 	return snowflake.GenerateID()
+}
+
+var _ base.IMessage = (*Message)(nil)
+
+// 实现Message的接口方法
+func (m *Message) GetID() string {
+	return m.Header.ID
+}
+
+func (m *Message) GetType() base.IMessageType {
+	return m.Header.Type
+}
+
+func (m *Message) GetTimestamp() time.Time {
+	return m.Header.Timestamp
+}
+
+func (m *Message) GetFrom() string {
+	return m.Header.From
+}
+
+func (m *Message) GetTo() string {
+	return m.Header.To
+}
+
+func (m *Message) GetPlatform() int32 {
+	return m.Header.Platform
+}
+
+func (m *Message) GetPayload() []byte {
+	return m.Payload
 }

@@ -21,7 +21,7 @@ const (
 )
 
 // mapMessageType 将内部消息类型映射到WebSocket消息类型
-func (w MessageType) MapMessageType() int {
+func (w MessageType) Int() int {
 	switch w {
 	case MessageTypeText, MessageTypeSystem, MessageTypeHeartbeat:
 		return websocket.TextMessage

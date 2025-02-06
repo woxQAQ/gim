@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/pkg/workerpool"
@@ -31,7 +30,7 @@ type WebSocketConn struct {
 	encoder    codec.Encoder
 
 	// 回调函数
-	onMessage    func(types.Message)
+	onMessage    func(base.IMessage)
 	onDisconnect func(error)
 	onError      func(error)
 
@@ -85,30 +84,29 @@ func (w *WebSocketConn) Disconnect(err error) error {
 }
 
 // Send 实现LongConn接口的Send方法
-func (w *WebSocketConn) Send(msg types.Message) error {
+func (w *WebSocketConn) Send(msg base.IMessage) error {
 	if w.State() != base.Connected {
 		return errors.New("connection is not established")
 	}
 
-	return w.conn.WriteMessage(msg.Header.Type.MapMessageType(), msg.Payload)
+	return w.conn.WriteMessage(msg.GetType().Int(), msg.GetPayload())
 }
 
 // Receive 实现LongConn接口的Receive方法
-func (w *WebSocketConn) Receive() (types.Message, error) {
-	msgType, data, err := w.conn.ReadMessage()
+func (w *WebSocketConn) Receive() (base.IMessage, error) {
+	_, data, err := w.conn.ReadMessage()
 	if err != nil {
-		return types.Message{}, err
+		return nil, err
 	}
 
-	return types.Message{
-		Header: types.MessageHeader{
-			Type:      types.MessageType(msgType),
-			Timestamp: time.Now(),
-			From:      w.id,
-			Platform:  w.platformID,
-		},
-		Payload: data,
-	}, nil
+	var res base.IMessage
+
+	err = w.encoder.Decode(data, res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // State 实现LongConn接口的State方法
@@ -143,7 +141,7 @@ func (w *WebSocketConn) PlatformID() int32 {
 }
 
 // OnMessage 实现LongConn接口的OnMessage方法
-func (w *WebSocketConn) OnMessage(handler func(types.Message)) {
+func (w *WebSocketConn) OnMessage(handler func(base.IMessage)) {
 	w.onMessage = handler
 }
 

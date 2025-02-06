@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/pkg/workerpool"
 )
@@ -30,11 +29,11 @@ type IUserManager interface {
 	// IsOnline 检查用户是否在线
 	IsOnline(userID string) bool
 	// BroadcastMessage 向所有用户的所有平台广播消息
-	BroadcastMessage(msg types.Message) []error
+	BroadcastMessage(msg base.IMessage) []error
 	// SendMessage 向指定用户的所有平台发送消息
-	SendMessage(userID string, msg types.Message) []error
+	SendMessage(userID string, msg base.IMessage) []error
 	// SendPlatformMessage 向指定用户的指定平台发送消息
-	SendPlatformMessage(userID string, platformID int32, msg types.Message) error
+	SendPlatformMessage(userID string, platformID int32, msg base.IMessage) error
 }
 
 var _ IUserManager = &Manager{}
@@ -212,7 +211,7 @@ func (um *Manager) IsOnline(userID string) bool {
 }
 
 // BroadcastMessage 实现 IUserManager 接口.
-func (um *Manager) BroadcastMessage(msg types.Message) []error {
+func (um *Manager) BroadcastMessage(msg base.IMessage) []error {
 	um.mutex.RLock()
 	defer um.mutex.RUnlock()
 
@@ -232,7 +231,7 @@ func (um *Manager) BroadcastMessage(msg types.Message) []error {
 }
 
 // SendMessage 实现 IUserManager 接口.
-func (um *Manager) SendMessage(userID string, msg types.Message) []error {
+func (um *Manager) SendMessage(userID string, msg base.IMessage) []error {
 	um.mutex.RLock()
 
 	var errors []error
@@ -255,7 +254,7 @@ func (um *Manager) SendMessage(userID string, msg types.Message) []error {
 }
 
 // SendPlatformMessage 实现 IUserManager 接口.
-func (um *Manager) SendPlatformMessage(userID string, platformID int32, msg types.Message) error {
+func (um *Manager) SendPlatformMessage(userID string, platformID int32, msg base.IMessage) error {
 	conn, err := um.GetConn(userID, platformID)
 	if err != nil || conn == nil {
 		return err

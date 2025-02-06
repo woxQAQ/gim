@@ -7,6 +7,7 @@ import (
 
 	"github.com/woxQAQ/gim/internal/apiserver/types/response"
 	"github.com/woxQAQ/gim/internal/types"
+	"github.com/woxQAQ/gim/internal/wsgateway/base"
 )
 
 // MessageStatus 消息状态
@@ -61,13 +62,13 @@ func (m *Message) ToResponse() *response.MessageResponse {
 	}
 }
 
-func (m *Message) FromTypes(msg types.Message) {
-	m.ID = msg.Header.ID
-	m.FromID = msg.Header.From
-	m.ToID = msg.Header.To
-	m.Content = string(msg.Payload)
-	m.Platform = msg.Header.Platform
-	m.CreatedAt = msg.Header.Timestamp
+func (m *Message) FromTypes(msg base.IMessage) {
+	m.ID = msg.GetID()
+	m.FromID = msg.GetFrom()
+	m.ToID = msg.GetTo()
+	m.Content = string(msg.GetPayload())
+	m.Platform = msg.GetPlatform()
+	m.CreatedAt = msg.GetTimestamp()
 }
 
 // MessageAttachment 消息附件模型
