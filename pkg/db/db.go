@@ -53,6 +53,8 @@ func migrateDB() error {
 	// 在这里添加需要迁移的模型
 	models := []interface{}{
 		&models.User{},
+		&models.Message{},
+		&models.MessageAttachment{},
 		// 在此处添加其他需要迁移的模型
 	}
 

@@ -4,12 +4,15 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/woxQAQ/gim/internal/wsgateway"
+	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
 )
 
@@ -29,6 +32,11 @@ func TestGateway(t *testing.T) {
 var _ = BeforeSuite(func() {
 	testCtx, cancel = context.WithCancel(context.Background())
 
+	// 初始化数据库
+	// 设置测试数据库为内存模式
+	Err := db.Init(&db.Config{DatabasePath: ":memory:"})
+	Expect(Err).NotTo(HaveOccurred())
+
 	// 创建网关实例
 	l, _ := logger.NewLogger(logger.DomainWSGateway, &logger.Config{Level: "error"})
 	l.Disable()
@@ -45,4 +53,7 @@ var _ = AfterSuite(func() {
 	cancel()
 	_ = gateway.Stop()
 	server.Close()
+
+	// 清理测试数据库
+	_ = os.Remove(filepath.Join(os.TempDir(), "gim_test.db"))
 })

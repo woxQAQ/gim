@@ -9,18 +9,18 @@ import (
 
 // MessageHeader 定义消息头部结构
 type MessageHeader struct {
-	ID        string      // 消息唯一标识
-	Type      MessageType // 消息类型
-	Timestamp time.Time   // 消息时间戳
-	From      string      // 发送者ID
-	To        string      // 接收者ID
-	Platform  int32       // 平台标识
+	ID        string      `json:"id"`        // 消息唯一标识
+	Type      MessageType `json:"type"`      // 消息类型
+	Timestamp time.Time   `json:"timestamp"` // 消息时间戳
+	From      string      `json:"from"`      // 发送者ID
+	To        string      `json:"to"`        // 接收者ID
+	Platform  int32       `json:"platform"`  // 平台标识
 }
 
 // Message 定义新的消息结构
 type Message struct {
-	Header  MessageHeader // 消息头部
-	Payload []byte        // 消息内容
+	Header  MessageHeader `json:"header"`  // 消息头部
+	Payload []byte        `json:"payload"` // 消息内容
 }
 
 // NewMessage 创建新的消息实例

@@ -38,15 +38,20 @@ var _ = Describe("WebSocket Gateway Messaging Tests", func() {
 
 			clients = append(clients, client1, client2)
 
+			Expect(gateway.IsUserOnline("test2")).To(BeTrue())
+			Expect(gateway.IsUserOnline("test1")).To(BeTrue())
+
 			// 等待连接建立
 			time.Sleep(100 * time.Millisecond)
 
 			// 发送测试消息
 			testMsg := types.Message{
 				Header: types.MessageHeader{
-					Type: types.MessageTypeText,
-					From: "test1",
-					To:   "test2",
+					Type:     types.MessageTypeText,
+					From:     "test1",
+					To:       "test2",
+					ID:       "233",
+					Platform: 3,
 				},
 				Payload: []byte("hello"),
 			}
@@ -54,7 +59,7 @@ var _ = Describe("WebSocket Gateway Messaging Tests", func() {
 			Err = client1.SendMessage(testMsg)
 			Expect(Err).NotTo(HaveOccurred())
 
-			// 验证消息接收
+			// 验证消息接收，设置合理的超时时间
 			Eventually(func() []types.Message {
 				return client2.GetMessages()
 			}).Should(ContainElement(testMsg))

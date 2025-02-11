@@ -29,8 +29,7 @@ func New(url, userID string, platform int32) *Client {
 
 // Connect 连接到WebSocket服务器
 func (c *Client) Connect() error {
-	dialer := websocket.Dialer{}
-	conn, _, err := dialer.Dial(c.url, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(c.url, nil)
 	if err != nil {
 		return err
 	}
@@ -54,8 +53,7 @@ func (c *Client) Close() {
 func (c *Client) readMessages() {
 	for {
 		var msg types.Message
-		err := c.conn.ReadJSON(&msg)
-		if err != nil {
+		if err := c.conn.ReadJSON(&msg); err != nil {
 			return
 		}
 

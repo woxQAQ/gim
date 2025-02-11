@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/pkg/workerpool"
@@ -88,8 +89,12 @@ func (w *WebSocketConn) Send(msg base.IMessage) error {
 	if w.State() != base.Connected {
 		return errors.New("connection is not established")
 	}
+	data, err := w.encoder.Encode(msg)
+	if err != nil {
+		return err
+	}
 
-	return w.conn.WriteMessage(msg.GetType().Int(), msg.GetPayload())
+	return w.conn.WriteMessage(msg.GetType().Int(), data)
 }
 
 // Receive 实现LongConn接口的Receive方法
@@ -99,7 +104,7 @@ func (w *WebSocketConn) Receive() (base.IMessage, error) {
 		return nil, err
 	}
 
-	var res base.IMessage
+	res := new(types.Message)
 
 	err = w.encoder.Decode(data, res)
 	if err != nil {

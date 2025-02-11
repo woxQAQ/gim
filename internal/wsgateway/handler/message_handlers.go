@@ -57,6 +57,11 @@ func NewStoreHandler(messageStore *stores.MessageStore) *StoreHandler {
 
 // Handle 实现消息存储逻辑
 func (h *StoreHandler) Handle(msg base.IMessage) (bool, error) {
+	// 检查消息存储器是否已初始化
+	if h.messageStore == nil {
+		return false, errors.New("message store is not initialized")
+	}
+
 	// 将消息转换为数据库模型
 	message := &models.Message{}
 	message.FromTypes(msg)
