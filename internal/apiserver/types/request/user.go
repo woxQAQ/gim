@@ -7,7 +7,9 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Username string `json:"username" validate:"required"`
+	Email    string `json:"email"`
+	UserId   string `json:"userId"`
+	Username string `json:"username"`
 	Password string `json:"password" validate:"required"`
 }
 

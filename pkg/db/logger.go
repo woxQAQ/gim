@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/woxQAQ/gim/pkg/logger"
@@ -67,4 +68,41 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 	} else {
 		l.Logger.Debug("SQL执行成功", fields...)
 	}
+}
+
+const (
+	colorSQL     = "\033[36m" // 青色
+	colorSQLFunc = "\033[33m" // 黄色
+	colorReset   = "\033[0m"
+)
+
+// highlightSQL 实现SQL语法高亮
+func highlightSQL(sql string) string {
+	keywords := map[string]bool{
+		"SELECT": true, "FROM": true, "WHERE": true, "INSERT": true,
+		"INTO": true, "UPDATE": true, "DELETE": true, "CREATE": true,
+		"TABLE": true, "INDEX": true, "ON": true, "VALUES": true,
+		"SET": true, "AND": true, "OR": true, "NOT": true,
+	}
+
+	// 分割保留大小写
+	parts := strings.FieldsFunc(sql, func(r rune) bool {
+		return r == ' ' || r == '(' || r == ')'
+	})
+
+	builder := strings.Builder{}
+	for _, part := range parts {
+		upperPart := strings.ToUpper(part)
+		if keywords[upperPart] {
+			builder.WriteString(colorSQLFunc)
+			builder.WriteString(part)
+			builder.WriteString(colorReset)
+		} else {
+			builder.WriteString(colorSQL)
+			builder.WriteString(part)
+			builder.WriteString(colorReset)
+		}
+		builder.WriteRune(' ')
+	}
+	return strings.TrimSpace(builder.String())
 }

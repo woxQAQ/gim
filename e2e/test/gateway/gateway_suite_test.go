@@ -38,7 +38,7 @@ var _ = BeforeSuite(func() {
 	Expect(Err).NotTo(HaveOccurred())
 
 	// 创建网关实例
-	l, _ := logger.NewLogger(logger.DomainWSGateway, &logger.Config{Level: "error"})
+	l, _ := logger.NewLogger(&logger.Config{Level: "error"})
 	l.Disable()
 	gateway, _ = wsgateway.NewWSGateway(wsgateway.WithLogger(l))
 	_ = gateway.Start(testCtx)

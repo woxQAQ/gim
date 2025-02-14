@@ -1,5 +1,5 @@
 .phony: module
-module: 
+module:
 	go mod tidy -compat=1.22
 	go mod verify
 
@@ -11,7 +11,7 @@ imports:
 
 .phony: fmt
 fmt:
-	go fmt ./... 
+	go fmt ./...
 
 .phony: test
 test: fmt module

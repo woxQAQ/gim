@@ -6,7 +6,6 @@ import (
 	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/pkg/logger"
 
-	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -18,6 +17,7 @@ var (
 
 // Config 数据库配置
 type Config struct {
+	Logger       logger.Logger
 	DatabasePath string // SQLite数据库文件路径
 }
 
@@ -26,12 +26,7 @@ func Init(cfg *Config) error {
 	var err error
 	once.Do(func() {
 		// 连接SQLite数据库
-		var dl logger.Logger
-		dl, err = logger.NewLogger(logger.DomainDatabase, nil, zap.AddCallerSkip(1))
-		if err != nil {
-			return
-		}
-		gormLogger := NewGormLogger(dl)
+		gormLogger := NewGormLogger(cfg.Logger.With(logger.String("domain", "database")))
 		instance, err = gorm.Open(sqlite.Open(cfg.DatabasePath), &gorm.Config{
 			Logger: gormLogger,
 		})

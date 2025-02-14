@@ -67,10 +67,32 @@
 				},
 				"type": "object"
 			},
+			"LoginPayload": {
+				"description": "LoginPayload schema",
+				"properties": {
+					"password": {
+						"type": "string"
+					},
+					"user": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"user",
+					"password"
+				],
+				"type": "object"
+			},
 			"LoginRequest": {
 				"description": "LoginRequest schema",
 				"properties": {
+					"email": {
+						"type": "string"
+					},
 					"password": {
+						"type": "string"
+					},
+					"userId": {
 						"type": "string"
 					},
 					"username": {
@@ -78,9 +100,50 @@
 					}
 				},
 				"required": [
-					"username",
 					"password"
 				],
+				"type": "object"
+			},
+			"LoginResponse": {
+				"description": "LoginResponse schema",
+				"properties": {
+					"token": {
+						"type": "string"
+					},
+					"user": {
+						"description": "UserResponse schema",
+						"properties": {
+							"avatar": {
+								"type": "string"
+							},
+							"bio": {
+								"type": "string"
+							},
+							"email": {
+								"type": "string"
+							},
+							"gender": {
+								"type": "string"
+							},
+							"id": {
+								"type": "string"
+							},
+							"nickname": {
+								"type": "string"
+							},
+							"phone": {
+								"type": "string"
+							},
+							"status": {
+								"type": "string"
+							},
+							"username": {
+								"type": "string"
+							}
+						},
+						"type": "object"
+					}
+				},
 				"type": "object"
 			},
 			"MessageHistoryResponse": {
@@ -178,6 +241,15 @@
 				},
 				"type": "object"
 			},
+			"tokenResponse": {
+				"description": "tokenResponse schema",
+				"properties": {
+					"token": {
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
 			"unknown-interface": {
 				"description": "unknown-interface schema"
 			}
@@ -192,7 +264,7 @@
 	"paths": {
 		"/api/v1/messages/history": {
 			"get": {
-				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*MessageController).GetMessageHistory`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n获取消息历史记录",
+				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*MessageController).GetMessageHistory`\n\n#### Middlewares:\n\n- `github.com/go-fuego/fuego.NewServer.Security.TokenToContext.func13`\n- `main.main.Recovery.func9`\n- `main.main.Logger.func10`\n\n---\n\n获取消息历史记录",
 				"operationId": "GET_/api/v1/messages/history",
 				"parameters": [
 					{
@@ -281,7 +353,7 @@
 		},
 		"/api/v1/users/login": {
 			"post": {
-				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Login`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n用户登录",
+				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Login`\n\n#### Middlewares:\n\n- `github.com/go-fuego/fuego.NewServer.Security.TokenToContext.func13`\n- `main.main.Recovery.func9`\n- `main.main.Logger.func10`\n\n---\n\n用户登录",
 				"operationId": "POST_/api/v1/users/login",
 				"parameters": [
 					{
@@ -317,12 +389,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/UserResponse"
+									"$ref": "#/components/schemas/LoginResponse"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/UserResponse"
+									"$ref": "#/components/schemas/LoginResponse"
 								}
 							}
 						},
@@ -370,7 +442,7 @@
 		},
 		"/api/v1/users/register": {
 			"post": {
-				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Register`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n注册用户",
+				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).Register`\n\n#### Middlewares:\n\n- `github.com/go-fuego/fuego.NewServer.Security.TokenToContext.func13`\n- `main.main.Recovery.func9`\n- `main.main.Logger.func10`\n\n---\n\n注册用户",
 				"operationId": "POST_/api/v1/users/register",
 				"parameters": [
 					{
@@ -457,47 +529,41 @@
 				]
 			}
 		},
-		"/api/v1/users/{userId}": {
-			"get": {
-				"description": "#### Controller: \n\n`github.com/woxQAQ/gim/internal/apiserver/controllers.(*UserController).GetUserInfo`\n\n#### Middlewares:\n\n- `github.com/woxQAQ/gim/pkg/middleware.Recovery.func1`\n- `github.com/woxQAQ/gim/pkg/middleware.Logger.func1`\n\n---\n\n获取用户信息",
-				"operationId": "GET_/api/v1/users/:userId",
+		"/auth/login": {
+			"post": {
+				"description": "#### Controller: \n\n`github.com/go-fuego/fuego.NewServer.Security.LoginHandler.func8`\n\n---\n\n",
+				"operationId": "POST_/auth/login",
 				"parameters": [
-					{
-						"description": "Bearer Token",
-						"in": "header",
-						"name": "Authentication",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					},
 					{
 						"in": "header",
 						"name": "Accept",
 						"schema": {
 							"type": "string"
 						}
-					},
-					{
-						"in": "path",
-						"name": "userId",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
 					}
 				],
+				"requestBody": {
+					"content": {
+						"*/*": {
+							"schema": {
+								"$ref": "#/components/schemas/LoginPayload"
+							}
+						}
+					},
+					"description": "Request body for fuego.LoginPayload",
+					"required": true
+				},
 				"responses": {
 					"200": {
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/UserResponse"
+									"$ref": "#/components/schemas/tokenResponse"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/UserResponse"
+									"$ref": "#/components/schemas/tokenResponse"
 								}
 							}
 						},
@@ -537,9 +603,129 @@
 						"description": ""
 					}
 				},
-				"summary": "get user info",
+				"summary": "Login",
 				"tags": [
-					"user"
+					"Auth"
+				]
+			}
+		},
+		"/auth/logout": {
+			"post": {
+				"description": "#### Controller: \n\n`github.com/go-fuego/fuego.Security.CookieLogoutHandler`\n\n---\n\n",
+				"operationId": "POST_/auth/logout",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/unknown-interface"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/unknown-interface"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							}
+						},
+						"description": "Bad Request _(validation or deserialization error)_"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							}
+						},
+						"description": "Internal Server Error _(panics)_"
+					},
+					"default": {
+						"description": ""
+					}
+				},
+				"summary": "Logout",
+				"tags": [
+					"Auth"
+				]
+			}
+		},
+		"/auth/refresh": {
+			"post": {
+				"description": "#### Controller: \n\n`github.com/go-fuego/fuego.Security.RefreshHandler`\n\n#### Middlewares:\n\n- `github.com/go-fuego/fuego.NewServer.Security.TokenToContext.func13`\n\n---\n\n",
+				"operationId": "POST_/auth/refresh",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/unknown-interface"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/unknown-interface"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							}
+						},
+						"description": "Bad Request _(validation or deserialization error)_"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPError"
+								}
+							}
+						},
+						"description": "Internal Server Error _(panics)_"
+					},
+					"default": {
+						"description": ""
+					}
+				},
+				"summary": "Refresh",
+				"tags": [
+					"Auth"
 				]
 			}
 		}
@@ -551,6 +737,9 @@
 		}
 	],
 	"tags": [
+		{
+			"name": "Auth"
+		},
 		{
 			"name": "message"
 		},

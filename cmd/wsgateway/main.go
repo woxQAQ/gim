@@ -38,7 +38,7 @@ func main() {
 	flag.Parse()
 
 	// 初始化日志系统
-	l, err := logger.NewLogger(logger.DomainWSGateway, &logger.Config{
+	l, err := logger.NewLogger(&logger.Config{
 		Level:    logLevel,
 		FilePath: logFile,
 	}, zap.AddCallerSkip(1))
@@ -63,7 +63,7 @@ func main() {
 
 	// 创建网关实例
 	gateway, err := wsgateway.NewWSGateway(
-		wsgateway.WithLogger(l),
+		wsgateway.WithLogger(l.With(logger.String("domain", "gateway"))),
 	)
 	if err != nil {
 		l.Error("创建WebSocket网关失败", logger.Error(err))

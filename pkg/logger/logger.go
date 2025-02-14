@@ -14,6 +14,16 @@ import (
 type Domain string
 
 const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+	colorCyan   = "\033[36m"
+	colorGray   = "\033[37m"
+)
+
+const (
 	DomainWSGateway Domain = "wsgateway" // WebSocket网关领域
 	DomainAPIServer Domain = "apiserver" // API服务器领域
 	DomainDatabase  Domain = "database"  // 数据库领域
@@ -113,7 +123,7 @@ func (l *logger) With(fields ...Field) Logger {
 }
 
 // NewLogger 创建指定领域的日志记录器.
-func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
+func NewLogger(cfg *Config, opts ...zap.Option) (Logger, error) {
 	// 使用默认配置
 	if cfg == nil {
 		cfg = &defaultConfig
@@ -129,9 +139,12 @@ func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
 	encConfig.TimeKey = "timestamp"
 	encConfig.CallerKey = "caller"
 	encConfig.MessageKey = "message"
+	encConfig.EncodeCaller = customCallerEncoder
+	encConfig.EncodeLevel = customLevelEncoder
+	encConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	consoleCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encConfig),
+		zapcore.NewConsoleEncoder(encConfig),
 		zapcore.AddSync(os.Stdout),
 		zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 			return lvl >= zapcore.DebugLevel
@@ -142,6 +155,9 @@ func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
 	// 如果指定了文件路径，添加文件输出.
 	if cfg.FilePath != "" {
 		// 创建日志目录
+		fileEncConfig := zap.NewProductionEncoderConfig()
+		fileEncConfig.TimeKey = "timestamp"
+		fileEncConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		if err := os.MkdirAll(filepath.Dir(cfg.FilePath), 0o755); err != nil {
 			return nil, fmt.Errorf("create log directory failed: %w", err)
 		}
@@ -149,7 +165,7 @@ func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
 		// 配置文件输出.
 		// 使用相同的编码配置
 		fileCore := zapcore.NewCore(
-			zapcore.NewJSONEncoder(encConfig),
+			zapcore.NewJSONEncoder(fileEncConfig),
 			zapcore.AddSync(&lumberjack.Logger{
 				Filename: cfg.FilePath,
 				MaxSize:  100, // 默认100MB
@@ -165,14 +181,34 @@ func NewLogger(domain Domain, cfg *Config, opts ...zap.Option) (Logger, error) {
 	core := zapcore.NewTee(cores...)
 
 	// 创建logger.
-	zapLogger := zap.New(core, zap.AddCaller()).With(zap.String("domain", string(domain)))
+	zapLogger := zap.New(core, zap.AddCaller())
 	for _, opt := range opts {
 		zapLogger = zapLogger.WithOptions(opt)
 	}
 	l := &logger{
 		zapLogger: zapLogger,
-		domain:    domain,
 	}
 
 	return l, nil
+}
+
+func customLevelEncoder(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+	var color string
+	switch l {
+	case zapcore.DebugLevel:
+		color = colorBlue
+	case zapcore.InfoLevel:
+		color = colorGreen
+	case zapcore.WarnLevel:
+		color = colorYellow
+	case zapcore.ErrorLevel, zapcore.DPanicLevel, zapcore.PanicLevel, zapcore.FatalLevel:
+		color = colorRed
+	default:
+		color = colorReset
+	}
+	enc.AppendString(fmt.Sprintf("%s%-5s%s", color, l.CapitalString(), colorReset))
+}
+
+func customCallerEncoder(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(fmt.Sprintf("%s%s%s", colorCyan, caller.TrimmedPath(), colorReset))
 }

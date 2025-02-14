@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"time"
+
 	"github.com/go-fuego/fuego"
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/woxQAQ/gim/internal/apiserver/services"
 	"github.com/woxQAQ/gim/internal/apiserver/types/request"
@@ -21,7 +24,6 @@ func (c *UserController) Route(sv *fuego.Server) {
 	)
 	fuego.Post(g, "/register", c.Register, fuego.OptionDescription("注册用户"))
 	fuego.Post(g, "/login", c.Login, fuego.OptionDescription("用户登录"))
-	fuego.Get(g, "/{userId}", c.GetUserInfo, fuego.OptionDescription("获取用户信息"))
 }
 
 // NewUserController 创建UserController实例
@@ -54,10 +56,15 @@ func (uc *UserController) Register(c fuego.ContextWithBody[request.RegisterReque
 }
 
 // Login 处理用户登录请求
-func (uc *UserController) Login(c fuego.ContextWithBody[request.LoginRequest]) (*response.UserResponse, error) {
+func (uc *UserController) Login(c fuego.ContextWithBody[request.LoginRequest]) (*response.LoginResponse, error) {
 	req, err := c.Body()
 	if err != nil {
 		return nil, err
+	}
+
+	token, err := uc.generateToken(req.UserId)
+	if err != nil {
+		return nil, fuego.InternalServerError{}
 	}
 
 	// 调用service层处理登录逻辑
@@ -66,25 +73,16 @@ func (uc *UserController) Login(c fuego.ContextWithBody[request.LoginRequest]) (
 		return nil, err
 	}
 
-	return user, nil
+	return &response.LoginResponse{
+		Token: token,
+		User:  user,
+	}, nil
 }
 
-// GetUserInfo 获取用户信息
-func (uc *UserController) GetUserInfo(c fuego.ContextNoBody) (*response.UserResponse, error) {
-	// 从上下文中获取用户ID
-	userID := c.PathParam("userId")
-	if userID == "" {
-		return nil, fuego.BadRequestError{
-			Title:  "Missing user ID",
-			Detail: "User ID is required",
-		}
-	}
-
-	// 调用service层获取用户信息
-	user, err := uc.userService.GetUserByID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return user.ToResponse(), nil
+func (uc *UserController) generateToken(userID string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	})
+	return token.SignedString([]byte(""))
 }

@@ -131,13 +131,13 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 
 	if g.logger == nil {
 		// 使用默认配置创建logger，内部已包含fallback机制
-		l, err := logger.NewLogger(logger.DomainWSGateway, &logger.Config{
+		l, err := logger.NewLogger(&logger.Config{
 			Level: "info",
 		})
 		if err != nil {
 			return nil, err
 		}
-		g.logger = l
+		g.logger = l.With(logger.String("domain", string(logger.DomainWSGateway)))
 	}
 
 	if g.encoder == nil {
