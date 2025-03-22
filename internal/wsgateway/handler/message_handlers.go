@@ -6,7 +6,7 @@ import (
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/internal/types"
-	"github.com/woxQAQ/gim/internal/wsgateway/base"
+	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
 )
 
@@ -14,6 +14,7 @@ import (
 type ForwardHandler struct {
 	BaseHandler
 	userManager user.IUserManager
+	codec.Encoder
 }
 
 // NewForwardHandler 创建消息转发处理器
@@ -24,7 +25,12 @@ func NewForwardHandler(userManager user.IUserManager) *ForwardHandler {
 }
 
 // Handle 实现消息转发逻辑
-func (h *ForwardHandler) Handle(msg base.IMessage) (bool, error) {
+func (h *ForwardHandler) Handle(data []byte) (bool, error) {
+	msg := new(types.Message)
+	err := h.Decode(data, msg)
+	if err != nil {
+		return false, err
+	}
 	// 根据消息类型和目标进行转发
 	switch msg.GetType() {
 	case types.MessageTypeText, types.MessageTypeImage,
@@ -48,15 +54,21 @@ func (h *ForwardHandler) Handle(msg base.IMessage) (bool, error) {
 type StoreHandler struct {
 	BaseHandler
 	messageStore *stores.MessageStore
+	encoder      codec.Encoder
 }
 
 // NewStoreHandler 创建消息存储处理器
-func NewStoreHandler(messageStore *stores.MessageStore) *StoreHandler {
-	return &StoreHandler{messageStore: messageStore}
+func NewStoreHandler(messageStore *stores.MessageStore, encoder codec.Encoder) *StoreHandler {
+	return &StoreHandler{messageStore: messageStore, encoder: encoder}
 }
 
 // Handle 实现消息存储逻辑
-func (h *StoreHandler) Handle(msg base.IMessage) (bool, error) {
+func (h *StoreHandler) Handle(data []byte) (bool, error) {
+	msg := new(types.Message)
+	err := h.encoder.Decode(data, msg)
+	if err != nil {
+		return false, err
+	}
 	// 检查消息存储器是否已初始化
 	if h.messageStore == nil {
 		return false, errors.New("message store is not initialized")
@@ -67,7 +79,7 @@ func (h *StoreHandler) Handle(msg base.IMessage) (bool, error) {
 	message.FromTypes(msg)
 
 	// 保存消息到数据库
-	err := h.messageStore.CreateMessage(message)
+	err = h.messageStore.CreateMessage(message)
 	if err != nil {
 		return false, err
 	}
@@ -77,14 +89,14 @@ func (h *StoreHandler) Handle(msg base.IMessage) (bool, error) {
 }
 
 // NewMessageChain 创建默认的消息处理链
-func NewMessageChain(userManager user.IUserManager, ms *stores.MessageStore) *Chain {
+func NewMessageChain(userManager user.IUserManager, ms *stores.MessageStore, encoder codec.Encoder) *Chain {
 	chain := NewChain()
 
 	// 添加消息转发处理器
 	chain.AddHandler(NewForwardHandler(userManager))
 
 	// 添加消息存储处理器
-	chain.AddHandler(NewStoreHandler(ms))
+	chain.AddHandler(NewStoreHandler(ms, encoder))
 
 	return chain
 }

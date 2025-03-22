@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/pkg/workerpool"
@@ -31,7 +30,7 @@ type WebSocketConn struct {
 	encoder    codec.Encoder
 
 	// 回调函数
-	onMessage    func(base.IMessage)
+	onMessage    func(msgType int, data []byte)
 	onDisconnect func(error)
 	onError      func(error)
 
@@ -85,33 +84,13 @@ func (w *WebSocketConn) Disconnect(err error) error {
 }
 
 // Send 实现LongConn接口的Send方法
-func (w *WebSocketConn) Send(msg base.IMessage) error {
-	if w.State() != base.Connected {
-		return errors.New("connection is not established")
-	}
-	data, err := w.encoder.Encode(msg)
-	if err != nil {
-		return err
-	}
-
-	return w.conn.WriteMessage(msg.GetType().Int(), data)
+func (w *WebSocketConn) Send(msgType int, data []byte) error {
+	return w.conn.WriteMessage(msgType, data)
 }
 
 // Receive 实现LongConn接口的Receive方法
-func (w *WebSocketConn) Receive() (base.IMessage, error) {
-	_, data, err := w.conn.ReadMessage()
-	if err != nil {
-		return nil, err
-	}
-
-	res := new(types.Message)
-
-	err = w.encoder.Decode(data, res)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+func (w *WebSocketConn) Receive() (int, []byte, error) {
+	return w.conn.ReadMessage()
 }
 
 // State 实现LongConn接口的State方法
@@ -146,7 +125,7 @@ func (w *WebSocketConn) PlatformID() int32 {
 }
 
 // OnMessage 实现LongConn接口的OnMessage方法
-func (w *WebSocketConn) OnMessage(handler func(base.IMessage)) {
+func (w *WebSocketConn) OnMessage(handler func(int, []byte)) {
 	w.onMessage = handler
 }
 
@@ -187,7 +166,7 @@ func (w *WebSocketConn) readPump() {
 		case <-w.closeChan:
 			return
 		default:
-			msg, err := w.Receive()
+			i, msg, err := w.Receive()
 			if err != nil {
 				if w.onError != nil {
 					w.onError(err)
@@ -196,7 +175,7 @@ func (w *WebSocketConn) readPump() {
 			}
 
 			if w.onMessage != nil {
-				w.onMessage(msg)
+				w.onMessage(i, msg)
 			}
 		}
 	}

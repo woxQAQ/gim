@@ -1,19 +1,16 @@
 package user
 
 import (
-	"context"
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/pkg/workerpool"
 )
 
 // IUserManager 定义用户管理器的接口.
 type IUserManager interface {
-	// Start 启动用户管理器
-	Start(ctx context.Context) error
-
 	// AddConn 添加用户的平台连接
 	AddConn(userID string, platformID int32, conn base.LongConn) error
 	// RemoveConn 移除用户的平台连接
@@ -43,11 +40,6 @@ type Manager struct {
 	users     map[string]*Platform // 用户ID到用户平台管理器的映射
 	mutex     sync.RWMutex         // 用于并发安全的读写锁
 	observers []StateObserver      // 状态观察者列表
-}
-
-// Start 实现 IUserManager 接口.
-func (um *Manager) Start(ctx context.Context) error {
-	return nil
 }
 
 // NewUserManager 创建新的用户管理器实例.
@@ -220,7 +212,7 @@ func (um *Manager) BroadcastMessage(msg base.IMessage) []error {
 		up.mutex.RLock()
 		for _, conn := range up.Conns {
 			if conn.State() == base.Connected {
-				if err := conn.Send(msg); err != nil {
+				if err := conn.Send(websocket.TextMessage, msg.GetPayload()); err != nil {
 					errors = append(errors, err)
 				}
 			}
@@ -245,7 +237,7 @@ func (um *Manager) SendMessage(userID string, msg base.IMessage) []error {
 	defer up.mutex.RUnlock()
 	for _, conn := range up.Conns {
 		if conn.State() == base.Connected {
-			if err := conn.Send(msg); err != nil {
+			if err := conn.Send(websocket.TextMessage, msg.GetPayload()); err != nil {
 				errors = append(errors, err)
 			}
 		}
@@ -259,7 +251,7 @@ func (um *Manager) SendPlatformMessage(userID string, platformID int32, msg base
 	if err != nil || conn == nil {
 		return err
 	}
-	return conn.Send(msg)
+	return conn.Send(websocket.TextMessage, msg.GetPayload())
 }
 
 // GetAll 实现 IUserManager 接口.

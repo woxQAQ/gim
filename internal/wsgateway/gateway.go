@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
-	"github.com/woxQAQ/gim/internal/types"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/internal/wsgateway/handler"
@@ -30,10 +29,10 @@ type Gateway interface {
 	Stop() error
 
 	// Broadcast 广播消息给所有在线用户
-	Broadcast(msg base.IMessage) []error
+	Broadcast(base.IMessage) []error
 
 	// SendToAllPlatforms 向指定用户的所有平台发送消息
-	SendToAllPlatforms(userID string, msg base.IMessage) []error
+	SendToAllPlatforms(string, base.IMessage) []error
 
 	// SendToPlatform 向指定用户的指定平台发送消息
 	SendToPlatform(userID string, platformID int32, msg base.IMessage) error
@@ -75,37 +74,6 @@ type WSGateway struct {
 	cancel     context.CancelFunc
 	closeOnce  sync.Once
 	closedChan chan struct{}
-}
-
-// Option 定义WSGateway的配置选项函数类型.
-type Option func(*WSGateway)
-
-// WithLogger 设置WSGateway的logger.
-func WithLogger(l logger.Logger) Option {
-	return func(g *WSGateway) {
-		g.logger = l
-	}
-}
-
-// WithCompressor 设置WSGateway的压缩器.
-func WithCompressor(c codec.Compressor) Option {
-	return func(g *WSGateway) {
-		g.compressor = c
-	}
-}
-
-// WithEncoder 设置WSGateway的编码器.
-func WithEncoder(e codec.Encoder) Option {
-	return func(g *WSGateway) {
-		g.encoder = e
-	}
-}
-
-func WithHeartbeat(interval, timeout time.Duration) Option {
-	return func(g *WSGateway) {
-		g.heartbeatInterval = interval
-		g.heartbeatTimeout = timeout
-	}
 }
 
 // NewWSGateway 创建新的WebSocket网关实例.
@@ -151,7 +119,7 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 	ms := stores.NewMessageStore(db.GetDB())
 
 	// 初始化消息处理链
-	g.messageChain = handler.NewMessageChain(g.userManager, ms)
+	g.messageChain = handler.NewMessageChain(g.userManager, ms, g.encoder)
 
 	return g, nil
 }
@@ -163,13 +131,6 @@ func (g *WSGateway) Start(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	g.ctx = ctx
 	g.cancel = cancel
-
-	// 启动用户管理器
-	g.logger.Info("Initializing user manager")
-	if err := g.userManager.Start(ctx); err != nil {
-		g.logger.Error("Failed to start user manager", logger.Error(err))
-		return err
-	}
 
 	// 监听context取消信号
 	go func() {
@@ -328,9 +289,9 @@ func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) 
 	wsConn.encoder = g.encoder
 
 	// 设置连接回调
-	wsConn.OnMessage(func(msg base.IMessage) {
+	wsConn.OnMessage(func(msgType int, data []byte) {
 		// 心跳消息特殊处理
-		if msg.GetType() == types.MessageTypeHeartbeat {
+		if msgType == websocket.PingMessage {
 			g.logger.Debug("Received heartbeat from user",
 				logger.String("user_id", userID),
 				logger.Int32("platform_id", platformID))
@@ -339,7 +300,7 @@ func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) 
 		}
 
 		// 使用责任链处理其他类型的消息
-		if err := g.messageChain.Process(msg); err != nil {
+		if err := g.messageChain.Process(data); err != nil {
 			g.logger.Error("Failed to process message",
 				logger.String("user_id", userID),
 				logger.Error(err))
