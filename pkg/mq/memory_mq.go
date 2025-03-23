@@ -6,9 +6,10 @@ import (
 )
 
 type memoryMQ struct {
-	msgs     map[string]chan *Message
-	handlers map[string][]func(*Message) error
-	mu       sync.RWMutex
+	msgs       map[string]chan *Message
+	handlers   map[string][]func(*Message) error
+	mu         sync.RWMutex
+	bufferSize int
 }
 
 type memoryProducer struct {
@@ -24,11 +25,15 @@ type MemoryMQFactory struct {
 	mq *memoryMQ
 }
 
-func NewMemoryMQFactory() *MemoryMQFactory {
+func NewMemoryMQFactory(bufferSize int) *MemoryMQFactory {
+	if bufferSize == 0 || bufferSize > 1024 {
+		bufferSize = 1024
+	}
 	return &MemoryMQFactory{
 		mq: &memoryMQ{
-			msgs:     make(map[string]chan *Message),
-			handlers: make(map[string][]func(*Message) error),
+			msgs:       make(map[string]chan *Message),
+			handlers:   make(map[string][]func(*Message) error),
+			bufferSize: bufferSize,
 		},
 	}
 }
@@ -52,7 +57,7 @@ func (p *memoryProducer) Publish(ctx context.Context, msg *Message) error {
 
 	p.mq.mu.Lock()
 	if _, exists := p.mq.msgs[msg.Topic]; !exists {
-		p.mq.msgs[msg.Topic] = make(chan *Message, 100) // 缓冲区大小可配置
+		p.mq.msgs[msg.Topic] = make(chan *Message, p.mq.bufferSize) // 缓冲区大小可配置
 	}
 	p.mq.mu.Unlock()
 

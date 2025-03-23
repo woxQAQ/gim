@@ -9,4 +9,6 @@ const (
 
 	LogLevel    = "LOG_LEVEL"
 	LogFilePath = "LOG_FILE_PATH"
+
+	SNOWFLAKE_NODE_ID = "SNOWFLAKE_NODE_ID"
 )
