@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -95,9 +96,7 @@ func Execute(g wsgateway.Gateway, l logger.Logger) {
 
 	// 设置自定义的补全函数
 	rl.Config.AutoComplete = readline.NewPrefixCompleter(
-		readline.PcItemDynamic(func(line string) []string {
-			return getCompletions(line)
-		}),
+		readline.PcItemDynamic(getCompletions),
 	)
 
 	// 设置根命令的Run函数，使其进入交互式模式
@@ -107,7 +106,7 @@ func Execute(g wsgateway.Gateway, l logger.Logger) {
 			// 读取用户输入
 			line, err := rl.Readline()
 			if err != nil {
-				if err == readline.ErrInterrupt {
+				if errors.Is(err, readline.ErrInterrupt) {
 					continue
 				}
 				break
@@ -143,6 +142,6 @@ func Execute(g wsgateway.Gateway, l logger.Logger) {
 	// 执行根命令
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 }

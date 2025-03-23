@@ -135,7 +135,7 @@ func (g *WSGateway) Start(ctx context.Context) error {
 	// 监听context取消信号
 	go func() {
 		<-ctx.Done()
-		g.Stop()
+		_ = g.Stop()
 	}()
 
 	g.logger.Info("WebSocket gateway service started successfully")

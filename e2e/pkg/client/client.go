@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+
 	"github.com/woxQAQ/gim/internal/types"
 )
 
@@ -64,7 +65,7 @@ func (c *Client) readMessages() {
 }
 
 // SendMessage 发送消息
-func (c *Client) SendMessage(msg types.Message) error {
+func (c *Client) SendMessage(msg *types.Message) error {
 	return c.conn.WriteJSON(msg)
 }
 

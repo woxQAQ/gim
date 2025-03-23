@@ -48,7 +48,7 @@ type workerPool struct {
 }
 
 // newWorkerPool 创建一个新的工作协程池
-func newWorkerPool(workers int, queueSize int) *workerPool {
+func newWorkerPool(workers, queueSize int) *workerPool {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &workerPool{
 		workers:   workers,
