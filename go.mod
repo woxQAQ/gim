@@ -13,7 +13,6 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
-	github.com/panjf2000/gnet/v2 v2.7.2
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	go.uber.org/zap v1.27.0

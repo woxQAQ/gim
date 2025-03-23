@@ -3,8 +3,6 @@ package handler
 import (
 	"errors"
 
-	"github.com/panjf2000/gnet/v2/pkg/buffer/linkedlist"
-
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/internal/types"
@@ -17,14 +15,12 @@ type ForwardHandler struct {
 	BaseHandler
 	userManager user.IUserManager
 	codec.Encoder
-	linkedlist.Buffer
 }
 
 // NewForwardHandler 创建消息转发处理器
 func NewForwardHandler(userManager user.IUserManager) *ForwardHandler {
 	return &ForwardHandler{
 		userManager: userManager,
-		Buffer:      linkedlist.Buffer{},
 	}
 }
 
@@ -35,7 +31,6 @@ func (h *ForwardHandler) Handle(data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	h.Buffer.Append(data)
 	// 根据消息类型和目标进行转发
 	switch msg.GetType() {
 	case types.MessageTypeText, types.MessageTypeImage,
