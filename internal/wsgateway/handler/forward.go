@@ -20,7 +20,10 @@ type ForwardHandler struct {
 }
 
 // NewForwardHandler 创建消息转发处理器
-func NewForwardHandler(userManager user.IUserManager, producer mq.Producer, encoder codec.Encoder) *ForwardHandler {
+func NewForwardHandler(ctx context.Context,
+	userManager user.IUserManager,
+	producer mq.Producer,
+	encoder codec.Encoder) *ForwardHandler {
 	return &ForwardHandler{
 		userManager: userManager,
 		producer:    producer,
@@ -52,7 +55,7 @@ func (h *ForwardHandler) Handle(data []byte) (bool, error) {
 	return true, nil
 }
 
-func (h *ForwardHandler) publishToMQ(msg *types.Message) error {
+func (h *ForwardHandler) publishToMQ(msg *types.Message) (string, error) {
 	// 序列化消息
 	data, err := h.encoder.Encode(msg)
 	if err != nil {

@@ -52,7 +52,7 @@ func main() {
 
 	// 初始化数据库连接
 	if err := db.Init(&db.Config{
-		DatabasePath: databasePath,
+		DSN: databasePath,
 	}); err != nil {
 		l.Error("初始化数据库连接失败", logger.Error(err))
 		os.Exit(1)

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
@@ -8,7 +10,8 @@ import (
 )
 
 // NewMessageChain 创建默认的消息处理链
-func NewMessageChain(userManager user.IUserManager,
+func NewMessageChain(ctx context.Context,
+	userManager user.IUserManager,
 	ms *stores.MessageStore,
 	encoder codec.Encoder,
 	producer mq.Producer,
@@ -16,7 +19,7 @@ func NewMessageChain(userManager user.IUserManager,
 	chain := NewChain()
 
 	// 添加异步消息转发处理器
-	chain.AddHandler(NewForwardHandler(userManager, producer, encoder))
+	chain.AddHandler(NewForwardHandler(ctx, userManager, producer, encoder))
 
 	// 添加消息存储处理器
 	chain.AddHandler(NewStoreHandler(ms, encoder))

@@ -126,8 +126,21 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 		return nil, err
 	}
 
+	consumer, err := mqFactory.NewConsumer(&mq.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	consumer.Subscribe("message_forward", func(ctx context.Context, msg *mq.Message) error {
+		// 反序列化消息
+
+	})
+
 	// 初始化消息处理链
-	g.messageChain = handler.NewMessageChain(g.userManager, ms, g.encoder, producer)
+	g.messageChain = handler.NewMessageChain(g.ctx,
+		g.userManager, ms,
+		g.encoder, producer,
+	)
 
 	return g, nil
 }

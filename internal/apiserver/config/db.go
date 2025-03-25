@@ -10,8 +10,8 @@ import (
 
 func SetupDatabase(l logger.Logger) {
 	if err := db.Init(&db.Config{
-		Logger:       l,
-		DatabasePath: viper.GetString(constants.DBPath),
+		Logger: l,
+		DSN:    viper.GetString(constants.DBPath),
 	}); err != nil {
 		l.Error(err.Error())
 		panic(err)
