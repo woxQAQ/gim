@@ -34,7 +34,7 @@ var _ = BeforeSuite(func() {
 
 	// 初始化数据库
 	// 设置测试数据库为内存模式
-	Err := db.Init(&db.Config{DatabasePath: ":memory:"})
+	Err := db.Init(&db.Config{DSN: ":memory:"})
 	Expect(Err).NotTo(HaveOccurred())
 
 	// 创建网关实例

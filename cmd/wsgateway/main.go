@@ -12,11 +12,12 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/spf13/viper"
 	"github.com/woxQAQ/gim/internal/wsgateway"
 	"github.com/woxQAQ/gim/internal/wsgateway/console"
+	"github.com/woxQAQ/gim/pkg/constants"
 	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
-	"github.com/woxQAQ/gim/pkg/snowflake"
 )
 
 var (
@@ -31,6 +32,10 @@ func init() {
 	flag.StringVar(&logLevel, "log-level", "info", "日志级别 (debug, info, warn, error)")
 	flag.StringVar(&logFile, "log-file", "", "日志文件路径，为空时仅输出到控制台")
 	flag.StringVar(&databasePath, "db-path", "gim.db", "SQLite数据库文件路径")
+
+	viper.BindEnv(constants.SnowflakeNodeId)
+	viper.BindEnv(constants.DatabaseDSN)
+	viper.BindEnv(constants.KafkaDSN)
 }
 
 func main() {
@@ -47,15 +52,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 初始化消息ID生成器
-	if err := snowflake.InitGenerator(1); err != nil {
-		l.Error("初始化消息ID生成器失败", logger.Error(err))
-		os.Exit(1)
-	}
-
 	// 初始化数据库连接
 	if err := db.Init(&db.Config{
-		DatabasePath: databasePath,
+		DSN: databasePath,
 	}); err != nil {
 		l.Error("初始化数据库连接失败", logger.Error(err))
 		os.Exit(1)

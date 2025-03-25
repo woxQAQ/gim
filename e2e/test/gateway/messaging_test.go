@@ -45,7 +45,7 @@ var _ = Describe("WebSocket Gateway Messaging Tests", func() {
 			time.Sleep(100 * time.Millisecond)
 
 			// 发送测试消息
-			testMsg := types.Message{
+			testMsg := &types.Message{
 				Header: types.MessageHeader{
 					Type:     types.MessageTypeText,
 					From:     "test1",
@@ -74,7 +74,7 @@ var _ = Describe("WebSocket Gateway Messaging Tests", func() {
 			clients = append(clients, c)
 
 			// 发送心跳消息
-			heartbeat := types.Message{
+			heartbeat := &types.Message{
 				Header: types.MessageHeader{
 					Type: types.MessageTypeHeartbeat,
 					From: "test1",

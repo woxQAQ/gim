@@ -89,7 +89,7 @@ func (w *WebSocketConn) Send(msgType int, data []byte) error {
 }
 
 // Receive 实现LongConn接口的Receive方法
-func (w *WebSocketConn) Receive() (int, []byte, error) {
+func (w *WebSocketConn) Receive() (n int, data []byte, err error) {
 	return w.conn.ReadMessage()
 }
 

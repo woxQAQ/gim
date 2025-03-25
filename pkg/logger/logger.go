@@ -48,6 +48,9 @@ type Logger interface {
 	Warn(msg string, fields ...Field)
 	Error(msg string, fields ...Field)
 	With(fields ...Field) Logger
+
+	// adapt with amqp logger
+	Printf(format string, v ...interface{})
 	Enable()
 	Disable()
 }
@@ -111,6 +114,10 @@ func (l *logger) Error(msg string, fields ...Field) {
 	if !l.disabled {
 		l.zapLogger.Error(msg, fields...)
 	}
+}
+
+func (l *logger) Printf(format string, v ...interface{}) {
+	l.zapLogger.Sugar().Infof(format, v...)
 }
 
 // With 实现Logger接口

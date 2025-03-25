@@ -6,7 +6,7 @@ import (
 	"github.com/woxQAQ/gim/internal/models"
 	"github.com/woxQAQ/gim/pkg/logger"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -17,8 +17,8 @@ var (
 
 // Config 数据库配置
 type Config struct {
-	Logger       logger.Logger
-	DatabasePath string // SQLite数据库文件路径
+	Logger logger.Logger
+	DSN    string // SQLite数据库文件路径
 }
 
 // Init 初始化数据库连接并执行迁移
@@ -27,7 +27,7 @@ func Init(cfg *Config) error {
 	once.Do(func() {
 		// 连接SQLite数据库
 		gormLogger := NewGormLogger(cfg.Logger.With(logger.String("domain", "database")))
-		instance, err = gorm.Open(sqlite.Open(cfg.DatabasePath), &gorm.Config{
+		instance, err = gorm.Open(postgres.Open(cfg.DSN), &gorm.Config{
 			Logger: gormLogger,
 		})
 		if err != nil {
@@ -46,7 +46,7 @@ func Init(cfg *Config) error {
 // migrateDB 执行数据库迁移
 func migrateDB() error {
 	// 在这里添加需要迁移的模型
-	models := []interface{}{
+	models := []any{
 		&models.User{},
 		&models.Message{},
 		&models.MessageAttachment{},

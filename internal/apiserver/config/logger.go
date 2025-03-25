@@ -2,9 +2,10 @@ package config
 
 import (
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+
 	"github.com/woxQAQ/gim/pkg/constants"
 	"github.com/woxQAQ/gim/pkg/logger"
-	"go.uber.org/zap"
 )
 
 func SetupLogger() logger.Logger {

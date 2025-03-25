@@ -24,10 +24,10 @@ type LongConn interface {
 	Disconnect(err error) error
 
 	// Send 发送消息
-	Send(int, []byte) error
+	Send(msgType int, data []byte) error
 
 	// Receive 接收消息
-	Receive() (int, []byte, error)
+	Receive() (msgType int, data []byte, err error)
 
 	// State 获取当前连接状态
 	State() ConnectionState
@@ -45,11 +45,11 @@ type LongConn interface {
 	PlatformID() int32
 
 	// OnMessage 设置消息处理回调
-	OnMessage(handler func(int, []byte))
+	OnMessage(handler func(msgType int, data []byte))
 
 	// OnDisconnect 设置连接断开回调
-	OnDisconnect(handler func(error))
+	OnDisconnect(handler func(err error))
 
 	// OnError 设置错误处理回调
-	OnError(handler func(error))
+	OnError(handler func(err error))
 }

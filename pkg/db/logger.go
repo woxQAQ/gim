@@ -70,12 +70,14 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 	}
 }
 
+// nolint
 const (
 	colorSQL     = "\033[36m" // 青色
 	colorSQLFunc = "\033[33m" // 黄色
 	colorReset   = "\033[0m"
 )
 
+// nolint
 // highlightSQL 实现SQL语法高亮
 func highlightSQL(sql string) string {
 	keywords := map[string]bool{
