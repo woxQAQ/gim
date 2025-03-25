@@ -10,5 +10,7 @@ const (
 	LogLevel    = "LOG_LEVEL"
 	LogFilePath = "LOG_FILE_PATH"
 
-	SNOWFLAKE_NODE_ID = "SNOWFLAKE_NODE_ID"
+	SnowflakeNodeId = "SNOWFLAKE_NODE_ID"
+	DatabaseDSN     = "DATABASE_DSN"
+	KafkaDSN        = "KAFKA_DSN"
 )

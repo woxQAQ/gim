@@ -8,15 +8,16 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/segmentio/kafka-go"
+	"github.com/spf13/viper"
 
 	"github.com/woxQAQ/gim/internal/apiserver/stores"
 	"github.com/woxQAQ/gim/internal/wsgateway/base"
 	"github.com/woxQAQ/gim/internal/wsgateway/codec"
-	"github.com/woxQAQ/gim/internal/wsgateway/handler"
 	"github.com/woxQAQ/gim/internal/wsgateway/user"
+	"github.com/woxQAQ/gim/pkg/constants"
 	"github.com/woxQAQ/gim/pkg/db"
 	"github.com/woxQAQ/gim/pkg/logger"
-	"github.com/woxQAQ/gim/pkg/mq"
 )
 
 var _ Gateway = &WSGateway{}
@@ -64,9 +65,8 @@ type WSGateway struct {
 	compressor codec.Compressor
 	encoder    codec.Encoder
 
-	// 消息处理链
-	messageChain *handler.Chain
-
+	messageHandler map[int]func(base.LongConn, []byte)
+	producer       *kafka.Writer
 	// 日志记录器
 	logger logger.Logger
 
@@ -117,31 +117,20 @@ func NewWSGateway(opts ...Option) (*WSGateway, error) {
 		g.compressor = codec.NewGzipCompressor()
 	}
 
-	ms := stores.NewMessageStore(db.GetDB())
-
-	// 初始化MQ
-	mqFactory := mq.NewMemoryMQFactory(100)
-	producer, err := mqFactory.NewProducer(&mq.Config{})
-	if err != nil {
-		return nil, err
+	if g.producer == nil {
+		g.producer = &kafka.Writer{
+			Addr:  kafka.TCP(viper.GetStringSlice(constants.KafkaDSN)...),
+			Topic: fmt.Sprintf("message-push"),
+		}
 	}
 
-	consumer, err := mqFactory.NewConsumer(&mq.Config{})
-	if err != nil {
-		return nil, err
+	g.messageHandler = map[int]func(wsConn base.LongConn, data []byte){
+		websocket.PingMessage: func(wsConn base.LongConn, data []byte) {
+			wsConn.UpdateLastPingTime(time.Now())
+		},
 	}
 
-	consumer.Subscribe("message_forward", func(ctx context.Context, msg *mq.Message) error {
-		// 反序列化消息
-
-	})
-
-	// 初始化消息处理链
-	g.messageChain = handler.NewMessageChain(g.ctx,
-		g.userManager, ms,
-		g.encoder, producer,
-	)
-
+	_ = stores.NewMessageStore(db.GetDB())
 	return g, nil
 }
 

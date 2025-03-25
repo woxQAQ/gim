@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/woxQAQ/gim/pkg/logger"
 )
 
@@ -51,20 +50,7 @@ func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) 
 	// 设置连接回调
 	wsConn.OnMessage(func(msgType int, data []byte) {
 		// 心跳消息特殊处理
-		if msgType == websocket.PingMessage {
-			g.logger.Debug("Received heartbeat from user",
-				logger.String("user_id", userID),
-				logger.Int32("platform_id", platformID))
-			wsConn.UpdateLastPingTime(time.Now())
-			return
-		}
-
-		// 使用责任链处理其他类型的消息
-		if err := g.messageChain.Process(data); err != nil {
-			g.logger.Error("Failed to process message",
-				logger.String("user_id", userID),
-				logger.Error(err))
-		}
+		g.messageHandler[msgType](wsConn, data)
 	})
 
 	// 启动连接
@@ -82,7 +68,7 @@ func (g *WSGateway) HandleNewConnection(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	g.logger.Info("New WebSocket connection established",
+	g.logger.Debug("New WebSocket connection established",
 		logger.String("user_id", userID),
 		logger.Int32("platform_id", platformID),
 	)

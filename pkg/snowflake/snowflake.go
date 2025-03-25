@@ -19,7 +19,7 @@ func GenerateID() string {
 	once.Do(func() {
 		var err error
 		// 如果未初始化，使用默认节点
-		nodeId := viper.GetInt64(constants.SNOWFLAKE_NODE_ID)
+		nodeId := viper.GetInt64(constants.GATEWAY_NODE_ID)
 		node, err = snowflake.NewNode(nodeId)
 		if err != nil {
 			panic(err)
